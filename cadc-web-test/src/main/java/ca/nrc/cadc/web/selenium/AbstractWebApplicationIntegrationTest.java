@@ -119,6 +119,7 @@ public abstract class AbstractWebApplicationIntegrationTest
 
     private String seleniumServerURL;
     private String webURL;
+    private String endpoint;
     private String username;
     private String password;
     private int currentWaitTime;
@@ -310,6 +311,9 @@ public abstract class AbstractWebApplicationIntegrationTest
         {
             webURL = applicationURL;
         }
+
+        final String configuredEndpoint = System.getProperty("web.app.endpoint");
+        this.endpoint = StringUtil.hasText(configuredEndpoint) ? configuredEndpoint : null;
 
         System.out.println("Web URL: " + webURL);
         System.out.println("Selenium Server: " + seleniumServerURL);
@@ -709,6 +713,10 @@ public abstract class AbstractWebApplicationIntegrationTest
     protected String getWebURL()
     {
         return webURL;
+    }
+
+    protected String getEndpoint(final String defaultEndpoint) {
+        return StringUtil.hasText(this.endpoint) ? this.endpoint : defaultEndpoint;
     }
 
     protected void setWebURL(String webURL)
