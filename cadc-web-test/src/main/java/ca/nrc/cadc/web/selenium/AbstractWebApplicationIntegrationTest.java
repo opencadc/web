@@ -119,6 +119,7 @@ public abstract class AbstractWebApplicationIntegrationTest
 
     private String seleniumServerURL;
     private String webURL;
+    private String endpoint;
     private String username;
     private String password;
     private int currentWaitTime;
@@ -311,6 +312,9 @@ public abstract class AbstractWebApplicationIntegrationTest
             webURL = applicationURL;
         }
 
+        final String configuredEndpoint = System.getProperty("web.app.endpoint");
+        this.endpoint = StringUtil.hasText(configuredEndpoint) ? configuredEndpoint : null;
+
         System.out.println("Web URL: " + webURL);
         System.out.println("Selenium Server: " + seleniumServerURL);
         System.out.println("Done with Abstract Web Test constructor.");
@@ -357,7 +361,7 @@ public abstract class AbstractWebApplicationIntegrationTest
         return constructor.newInstance(driver);
     }
 
-    protected void goBack() throws Exception
+    public void goBack() throws Exception
     {
         driver.navigate().back();
     }
@@ -367,7 +371,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      *
      * @param b The boolean flag to check for truthiness.
      */
-    protected void verifyTrue(final boolean b) throws Exception
+    public void verifyTrue(final boolean b) throws Exception
     {
         if (!b)
         {
@@ -375,17 +379,17 @@ public abstract class AbstractWebApplicationIntegrationTest
         }
     }
 
-    protected void verifyEquals(final Object o1, final Object o2) throws Exception
+    public void verifyEquals(final Object o1, final Object o2) throws Exception
     {
         verifyTrue(o1.equals(o2));
     }
 
-    protected void check(final By by) throws Exception
+    public void check(final By by) throws Exception
     {
         click(by);
     }
 
-    protected void uncheck(final By by) throws Exception
+    public void uncheck(final By by) throws Exception
     {
         if (find(by).isSelected())
         {
@@ -393,7 +397,7 @@ public abstract class AbstractWebApplicationIntegrationTest
         }
     }
 
-    protected WebElement find(final By by) throws Exception
+    public WebElement find(final By by) throws Exception
     {
         try
         {
@@ -406,55 +410,55 @@ public abstract class AbstractWebApplicationIntegrationTest
         }
     }
 
-    protected void click(final By by) throws Exception
+    public void click(final By by) throws Exception
     {
         waitForElementPresent(by);
         click(find(by));
     }
 
-    protected void click(final WebElement elem) throws Exception
+    public void click(final WebElement elem) throws Exception
     {
         elem.click();
     }
 
-    protected void resetForm() throws Exception
+    public void resetForm() throws Exception
     {
         resetForm(By.cssSelector("input[type=\"reset\"]"));
     }
 
-    protected void resetForm(final By resetButtonBy) throws Exception
+    public void resetForm(final By resetButtonBy) throws Exception
     {
         click(resetButtonBy);
     }
 
-    protected void verifyElementChecked(final By by) throws Exception
+    public void verifyElementChecked(final By by) throws Exception
     {
         verifyTrue(find(by).isSelected());
     }
 
-    protected void verifyElementUnChecked(final By by) throws Exception
+    public void verifyElementUnChecked(final By by) throws Exception
     {
         verifyFalse(find(by).isSelected());
     }
 
-    protected boolean elementExists(final By by) throws Exception
+    public boolean elementExists(final By by) throws Exception
     {
         return (find(by) != null);
     }
 
-    protected void verifyElementPresent(final By by) throws Exception
+    public void verifyElementPresent(final By by) throws Exception
     {
         final WebElement webElement = find(by);
         verifyFalse(webElement == null);
     }
 
-    protected void verifyDisabledInput(final String idSelector) throws Exception
+    public void verifyDisabledInput(final String idSelector) throws Exception
     {
         final Object obj = executeJavaScript("return document.getElementById('" + idSelector + "').disabled;");
         verifyTrue((obj != null) && ((Boolean) obj));
     }
 
-    protected void verifyElementNotPresent(final By by) throws Exception
+    public void verifyElementNotPresent(final By by) throws Exception
     {
         verifyTrue((find(by) == null));
     }
@@ -465,7 +469,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param source      The source element.
      * @param destination The to (target) element to drop into.
      */
-    protected void dragAndDrop(final By source, final By destination) throws Exception
+    public void dragAndDrop(final By source, final By destination) throws Exception
     {
         (new Actions(driver)).dragAndDrop(find(source), find(destination)).perform();
     }
@@ -478,7 +482,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param containerToScrollID The container to scroll.
      * @throws Exception For any test execution errors
      */
-    protected void scrollVerticallyIntoView(final String elementID,
+    public void scrollVerticallyIntoView(final String elementID,
                                             final String containerToScrollID)
             throws Exception
     {
@@ -537,42 +541,42 @@ public abstract class AbstractWebApplicationIntegrationTest
         executeJavaScript(script);
     }
 
-    protected void verifyTextPresent(final By by, final String value) throws Exception
+    public void verifyTextPresent(final By by, final String value) throws Exception
     {
         verifyTrue(getText(by).contains(value));
     }
 
-    protected void verifyTextMatches(final By by, final String regex) throws Exception
+    public void verifyTextMatches(final By by, final String regex) throws Exception
     {
         verifyTrue(getText(by).matches(regex));
     }
 
-    protected void verifyText(final By by, final String value) throws Exception
+    public void verifyText(final By by, final String value) throws Exception
     {
         verifyEquals(value, getText(by));
     }
 
-    protected String getText(final By by) throws Exception
+    public String getText(final By by) throws Exception
     {
         return find(by).getText();
     }
 
-    protected boolean isTextPresent(final String text) throws Exception
+    public boolean isTextPresent(final String text) throws Exception
     {
         return driver.getPageSource().contains(text);
     }
 
-    protected void verifyTextPresent(final String text) throws Exception
+    public void verifyTextPresent(final String text) throws Exception
     {
         verifyTrue(isTextPresent(text));
     }
 
-    protected void verifyTextNotPresent(final String text) throws Exception
+    public void verifyTextNotPresent(final String text) throws Exception
     {
         verifyFalse(isTextPresent(text));
     }
 
-    protected void verifyFalse(final boolean b)
+    public void verifyFalse(final boolean b)
     {
         if (b)
         {
@@ -580,12 +584,12 @@ public abstract class AbstractWebApplicationIntegrationTest
         }
     }
 
-    protected String getName()
+    public String getName()
     {
         return this.getClass().getName();
     }
 
-    protected void waitForTextPresent(final String text) throws Exception
+    public void waitForTextPresent(final String text) throws Exception
     {
         while (!driver.getPageSource().contains(text))
         {
@@ -604,7 +608,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @throws Exception For any test execution errors
      * @deprecated Use {@link AbstractTestWebPage#waitForTextPresent(By, String)}
      */
-    protected void waitForTextPresent(final By by, final String text) throws Exception
+    public void waitForTextPresent(final By by, final String text) throws Exception
     {
         waitForElementPresent(by);
         while (!find(by).getText().contains(text))
@@ -613,28 +617,28 @@ public abstract class AbstractWebApplicationIntegrationTest
         }
     }
 
-    protected Object executeJavaScript(final String javaScript) throws Exception
+    public Object executeJavaScript(final String javaScript) throws Exception
     {
         return ((JavascriptExecutor) driver).executeScript(javaScript);
     }
 
-    protected void hover(final WebElement element) throws Exception
+    public void hover(final WebElement element) throws Exception
     {
         final Actions action = new Actions(driver);
         action.moveToElement(element).click().build().perform();
     }
 
-    protected void waitForElementVisible(final By by) throws Exception
+    public void waitForElementVisible(final By by) throws Exception
     {
         assert (waitUntil(ExpectedConditions.visibilityOfElementLocated(by)) != null);
     }
 
-    protected void waitForElementInvisible(final By by) throws Exception
+    public void waitForElementInvisible(final By by) throws Exception
     {
         assert (waitUntil(ExpectedConditions.invisibilityOfElementLocated(by)) != null);
     }
 
-    protected void waitForElementPresent(final By by) throws Exception
+    public void waitForElementPresent(final By by) throws Exception
     {
         if (waitUntil(ExpectedConditions.presenceOfElementLocated(by)) == null)
         {
@@ -642,34 +646,34 @@ public abstract class AbstractWebApplicationIntegrationTest
         }
     }
 
-    protected void waitForElementNotPresent(final By by) throws Exception
+    public void waitForElementNotPresent(final By by) throws Exception
     {
         waitUntil(ExpectedConditions.invisibilityOfElementLocated(by));
     }
 
-    protected <V> V waitUntil(final ExpectedCondition<V> expectedCondition) throws Exception
+    public <V> V waitUntil(final ExpectedCondition<V> expectedCondition) throws Exception
     {
         final WebDriverWait webDriverWait =
                 new WebDriverWait(driver, TIMEOUT_IN_SECONDS);
         return webDriverWait.until(expectedCondition);
     }
 
-    protected String getCurrentWindowHandle() throws Exception
+    public String getCurrentWindowHandle() throws Exception
     {
         return driver.getWindowHandle();
     }
 
-    protected WebDriver selectWindow(final String windowHandle) throws Exception
+    public WebDriver selectWindow(final String windowHandle) throws Exception
     {
         return driver.switchTo().window(windowHandle);
     }
 
-    protected void closeWindow(final String windowHandle) throws Exception
+    public void closeWindow(final String windowHandle) throws Exception
     {
         selectWindow(windowHandle).close();
     }
 
-    protected void waitFor(final int seconds) throws Exception
+    public void waitFor(final int seconds) throws Exception
     {
         int count = 0;
         while (count <= seconds)
@@ -686,7 +690,7 @@ public abstract class AbstractWebApplicationIntegrationTest
         this.seleniumServerURL = seleniumServerURL;
     }
 
-    protected String getUsername()
+    public String getUsername()
     {
         return username;
     }
@@ -696,7 +700,7 @@ public abstract class AbstractWebApplicationIntegrationTest
         this.username = username;
     }
 
-    protected String getPassword()
+    public String getPassword()
     {
         return password;
     }
@@ -706,17 +710,21 @@ public abstract class AbstractWebApplicationIntegrationTest
         this.password = password;
     }
 
-    protected String getWebURL()
+    public String getWebURL()
     {
         return webURL;
     }
 
-    protected void setWebURL(String webURL)
+    public String getEndpoint(final String defaultEndpoint) {
+        return StringUtil.hasText(this.endpoint) ? this.endpoint : defaultEndpoint;
+    }
+
+    public void setWebURL(String webURL)
     {
         this.webURL = webURL;
     }
 
-    protected int getCurrentWaitTime()
+    public int getCurrentWaitTime()
     {
         return currentWaitTime;
     }
@@ -731,12 +739,12 @@ public abstract class AbstractWebApplicationIntegrationTest
      *
      * @param message Message to display explaining the failure.
      */
-    protected void fail(final String message)
+    public void fail(final String message)
     {
         throw new AssertionFailedError(message);
     }
 
-    protected boolean isFailOnTimeout()
+    public boolean isFailOnTimeout()
     {
         return failOnTimeout;
     }
@@ -751,7 +759,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      *
      * @throws Exception If anything went wrong.
      */
-    protected void waitOneSecond() throws Exception
+    public void waitOneSecond() throws Exception
     {
         if (isFailOnTimeout() && (getCurrentWaitTime() >= TIMEOUT_IN_MILLISECONDS))
         {
@@ -770,7 +778,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param milliseconds Time in milliseconds to wait.
      * @throws Exception For any test execution errors
      */
-    protected void waitFor(final long milliseconds) throws Exception
+    public void waitFor(final long milliseconds) throws Exception
     {
         Thread.sleep(milliseconds);
     }
