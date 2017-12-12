@@ -1,7 +1,7 @@
 #### Canadian Astronomy Data Center Virtual Observatory Table Viewer
 
-Version 2.
-September 2016
+Version 2.3
+December 2017
 
 ANT Build
 The '''build.xml''' file contains tasks for running the qunit JavaScript
