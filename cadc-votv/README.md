@@ -1,6 +1,6 @@
 #### Canadian Astronomy Data Center Virtual Observatory Table Viewer
 
-Version 2.3
+Version 2.
 September 2016
 
 ANT Build
