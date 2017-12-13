@@ -76,6 +76,7 @@
     this.targetNodeSelector = targetNodeSelector
     this.columnOptions = options.columnOptions ? options.columnOptions : {}
     this.options = options
+    this.options.heightOffset = options.heightOffset ? options.heightOffset : 0
     this.options.forceFitColumns = options.columnManager
       ? options.columnManager.forceFitColumns
       : false
@@ -544,6 +545,7 @@
      */
     function setViewportOffset(offset) {
       _self.viewportOffset = offset + getGridHeaderHeight()
+      console.log('New offset ' + _self.viewportOffset)
     }
 
     function setViewportHeight() {
@@ -551,6 +553,7 @@
         $(_self.targetNodeSelector).height(
           $(window).height() - _self.viewportOffset
         )
+        console.log('New height ' + $(_self.targetNodeSelector).height())
       }
     }
 
@@ -1316,7 +1319,10 @@
           }
         }
 
-        _self.setViewportOffset($('div.slick-header-columns').height())
+        _self.setViewportOffset(
+          $('div.slick-header-columns').height() +
+            _self.getOptions().heightOffset
+        )
         _self.setViewportHeight()
         g.resizeCanvas()
       })
