@@ -76,6 +76,7 @@
     this.targetNodeSelector = targetNodeSelector
     this.columnOptions = options.columnOptions ? options.columnOptions : {}
     this.options = options
+    this.options.heightOffset = options.heightOffset ? options.heightOffset : 0
     this.options.forceFitColumns = options.columnManager
       ? options.columnManager.forceFitColumns
       : false
@@ -1302,9 +1303,9 @@
         doGridSort()
       })
 
-      _self.grid.onRenderComplete.subscribe(function(e, args) {
-        var g = args.grid
-        if (getRowManager().onRowRendered) {
+      if (getRowManager().onRowRendered) {
+        _self.grid.onRenderComplete.subscribe(function(e, args) {
+          var g = args.grid
           var renderedRange = g.getRenderedRange()
           for (
             var i = renderedRange.top, ii = renderedRange.bottom;
@@ -1314,12 +1315,8 @@
             var $nextRow = g.getData().getItem(i)
             getRowManager().onRowRendered($nextRow, i)
           }
-        }
-
-        _self.setViewportOffset(40)
-        _self.setViewportHeight()
-        g.resizeCanvas()
-      })
+        })
+      }
 
       dataView.onPagingInfoChanged.subscribe(function(e, pagingInfo) {
         _self.grid.updatePagingStatusFromView(pagingInfo)
@@ -1391,6 +1388,12 @@
       if (forceFitMax) {
         resetColumnWidths()
       }
+
+      _self.setViewportOffset(
+        $('div.slick-header-columns').height() + _self.getOptions().heightOffset
+      )
+      _self.setViewportHeight()
+      _self.grid.resizeCanvas()
 
       sort()
     }
