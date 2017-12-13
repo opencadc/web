@@ -1316,7 +1316,7 @@
           }
         }
 
-        _self.setViewportOffset(40)
+        _self.setViewportOffset($('div.slick-header-columns').height())
         _self.setViewportHeight()
         g.resizeCanvas()
       })
