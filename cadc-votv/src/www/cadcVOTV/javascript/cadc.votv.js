@@ -545,7 +545,6 @@
      */
     function setViewportOffset(offset) {
       _self.viewportOffset = offset + getGridHeaderHeight()
-      console.log('New offset ' + _self.viewportOffset)
     }
 
     function setViewportHeight() {
@@ -553,7 +552,6 @@
         $(_self.targetNodeSelector).height(
           $(window).height() - _self.viewportOffset
         )
-        console.log('New height ' + $(_self.targetNodeSelector).height())
       }
     }
 
@@ -1305,9 +1303,9 @@
         doGridSort()
       })
 
-      _self.grid.onRenderComplete.subscribe(function(e, args) {
-        var g = args.grid
-        if (getRowManager().onRowRendered) {
+      if (getRowManager().onRowRendered) {
+        _self.grid.onRenderComplete.subscribe(function(e, args) {
+          var g = args.grid
           var renderedRange = g.getRenderedRange()
           for (
             var i = renderedRange.top, ii = renderedRange.bottom;
@@ -1317,15 +1315,8 @@
             var $nextRow = g.getData().getItem(i)
             getRowManager().onRowRendered($nextRow, i)
           }
-        }
-
-        _self.setViewportOffset(
-          $('div.slick-header-columns').height() +
-            _self.getOptions().heightOffset
-        )
-        _self.setViewportHeight()
-        g.resizeCanvas()
-      })
+        })
+      }
 
       dataView.onPagingInfoChanged.subscribe(function(e, pagingInfo) {
         _self.grid.updatePagingStatusFromView(pagingInfo)
@@ -1397,6 +1388,12 @@
       if (forceFitMax) {
         resetColumnWidths()
       }
+
+      _self.setViewportOffset(
+        $('div.slick-header-columns').height() + _self.getOptions().heightOffset
+      )
+      _self.setViewportHeight()
+      _self.grid.resizeCanvas()
 
       sort()
     }

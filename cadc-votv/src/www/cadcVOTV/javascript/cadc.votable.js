@@ -1,4 +1,6 @@
-;(function($) {
+;(function($, window, undefined) {
+  'use strict'
+
   // register namespace
   $.extend(true, window, {
     cadc: {
@@ -697,4 +699,4 @@
       getLongestValues: getLongestValues
     })
   }
-})(jQuery)
+})(jQuery, window)
