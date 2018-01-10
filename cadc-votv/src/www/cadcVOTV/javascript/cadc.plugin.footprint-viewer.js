@@ -426,10 +426,16 @@
 
     function handleClick(e, args) {
       _resetCurrent()
+
       _handleAction(args.grid.getDataItem(args.row))
+
+      // Do not allow row selection to happen.
+      e.stopImmediatePropagation()
+      return false
     }
 
     function handleMouseEnter(e, args) {
+      e.stopImmediatePropagation()
       _handleAction(args.grid.getDataItem(args.cell.row))
     }
 
@@ -452,7 +458,7 @@
         _self.defaultDec = decValue
       }
 
-      if (polygonValue !== null) {
+      if (polygonValue) {
         var footprintValues = polygonValue.split(POLYGON_SPLIT)
         var footprintValuesLength = footprintValues.length
 
