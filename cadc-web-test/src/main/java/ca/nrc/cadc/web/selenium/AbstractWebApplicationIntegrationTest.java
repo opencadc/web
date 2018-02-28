@@ -64,6 +64,7 @@
  * <p/>
  * ***********************************************************************
  */
+
 package ca.nrc.cadc.web.selenium;
 
 
@@ -85,10 +86,17 @@ import org.junit.rules.ExternalResource;
 import org.junit.runner.Description;
 import org.junit.runners.model.Statement;
 import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.opera.OperaOptions;
 import org.openqa.selenium.remote.Augmenter;
+import org.openqa.selenium.remote.BrowserType;
+import org.openqa.selenium.remote.CapabilityType;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.safari.SafariOptions;
 import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -98,23 +106,21 @@ import ca.nrc.cadc.util.StringUtil;
 
 /**
  * Subclasses of this should have the necessary tools to create an automated web application test.
- *
+ * <p>
  * TODO: Clean this up to only have shared code.
  */
-public abstract class AbstractWebApplicationIntegrationTest
-{
+public abstract class AbstractWebApplicationIntegrationTest {
     // One minute is just too long.
     private static final int TIMEOUT_IN_SECONDS = 60;
     private static final int TIMEOUT_IN_MILLISECONDS = (TIMEOUT_IN_SECONDS * 1000);
     private static final String SELENIUM_SERVER_URL_ENDPOINT = "/wd/hub";
-    private static final Map<String, DesiredCapabilities> CAPABILITIES_LOOKUP = new HashMap<>();
+    private static final Map<String, MutableCapabilities> CAPABILITIES_LOOKUP = new HashMap<>();
 
-    static
-    {
-        CAPABILITIES_LOOKUP.put("firefox", DesiredCapabilities.firefox());
-        CAPABILITIES_LOOKUP.put("safari", DesiredCapabilities.safari());
-        CAPABILITIES_LOOKUP.put("chrome", DesiredCapabilities.chrome());
-        CAPABILITIES_LOOKUP.put("opera", DesiredCapabilities.operaBlink());
+    static {
+        CAPABILITIES_LOOKUP.put("firefox", new FirefoxOptions());
+        CAPABILITIES_LOOKUP.put("safari", new SafariOptions());
+        CAPABILITIES_LOOKUP.put("chrome", new ChromeOptions());
+        CAPABILITIES_LOOKUP.put("opera", new OperaOptions());
     }
 
     private String seleniumServerURL;
@@ -125,34 +131,25 @@ public abstract class AbstractWebApplicationIntegrationTest
     private int currentWaitTime;
     private boolean failOnTimeout;
 
-    protected DesiredCapabilities driverCapabilities;
+    protected MutableCapabilities driverCapabilities;
     protected WebDriver driver;
 
 
     @Rule
-    public ExternalResource testWatcher = new ExternalResource()
-    {
+    public ExternalResource testWatcher = new ExternalResource() {
         @Override
         public Statement apply(final Statement base,
-                               final Description description)
-        {
-            return new Statement()
-            {
+                               final Description description) {
+            return new Statement() {
                 @Override
-                public void evaluate() throws Throwable
-                {
+                public void evaluate() throws Throwable {
                     before();
-                    try
-                    {
+                    try {
                         base.evaluate();
-                    }
-                    catch (Throwable t)
-                    {
+                    } catch (Throwable t) {
                         captureScreenShot(description.getClassName() + "." + description.getMethodName());
                         throw t;
-                    }
-                    finally
-                    {
+                    } finally {
                         after();
                     }
                 }
@@ -165,28 +162,19 @@ public abstract class AbstractWebApplicationIntegrationTest
          * @throws Throwable if setup fails (which will disable {@code after}
          */
         @Override
-        protected void before() throws Throwable
-        {
-            driverCapabilities.setJavascriptEnabled(true);
-
-            try
-            {
+        protected void before() {
+            try {
                 final String seleniumURL;
-                if (seleniumServerURL.contains(SELENIUM_SERVER_URL_ENDPOINT))
-                {
+                if (seleniumServerURL.contains(SELENIUM_SERVER_URL_ENDPOINT)) {
                     seleniumURL = seleniumServerURL;
-                }
-                else
-                {
+                } else {
                     seleniumURL = seleniumServerURL + SELENIUM_SERVER_URL_ENDPOINT;
                 }
 
                 System.out.println("Connecting to " + seleniumURL);
 
                 driver = new RemoteWebDriver(new URL(seleniumURL), driverCapabilities);
-            }
-            catch (MalformedURLException e)
-            {
+            } catch (MalformedURLException e) {
                 System.err.println("Can't create URL.");
                 e.printStackTrace(System.err);
                 throw new RuntimeException(e);
@@ -197,8 +185,7 @@ public abstract class AbstractWebApplicationIntegrationTest
             final WebDriver.Timeouts timeouts = driver.manage().timeouts();
 
             // Safari does not support setTimeout.
-            if (!driverCapabilities.getBrowserName().contains("afari"))
-            {
+            if (!driverCapabilities.getBrowserName().contains("afari")) {
                 // Set the timeout to four minutes.
                 timeouts.pageLoadTimeout(TIMEOUT_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
             }
@@ -210,21 +197,14 @@ public abstract class AbstractWebApplicationIntegrationTest
          * Override to tear down your specific external resource.
          */
         @Override
-        protected void after()
-        {
-            if (driver != null)
-            {
-                try
-                {
+        protected void after() {
+            if (driver != null) {
+                try {
                     driver.quit();
-                }
-                catch (Exception de)
-                {
+                } catch (Exception de) {
                     System.err.println("Driver could not quit!");
                     de.printStackTrace(System.err);
-                }
-                finally
-                {
+                } finally {
                     driver = null;
                 }
             }
@@ -232,8 +212,7 @@ public abstract class AbstractWebApplicationIntegrationTest
             System.out.println("Finished.");
         }
 
-        void captureScreenShot(final String methodName) throws IOException
-        {
+        void captureScreenShot(final String methodName) throws IOException {
             final String filename = methodName + ".png";
             final WebDriver augmentedDriver = new Augmenter().augment(driver);
             final File sourceFile = ((TakesScreenshot) augmentedDriver).getScreenshotAs(OutputType.FILE);
@@ -245,70 +224,53 @@ public abstract class AbstractWebApplicationIntegrationTest
     };
 
 
-    public AbstractWebApplicationIntegrationTest() throws Exception
-    {
+    public AbstractWebApplicationIntegrationTest() throws Exception {
         // Base Host of the web application to be tested.
         final String seleniumURL = System.getProperty("selenium.server.url");
-        if (seleniumURL == null)
-        {
+        if (seleniumURL == null) {
             throw new RuntimeException("selenium.server.url System property not set");
-        }
-        else
-        {
+        } else {
             seleniumServerURL = seleniumURL;
         }
 
         // Schema of the web application to be tested.
         final String driver = System.getProperty("driver");
-        if (!StringUtil.hasText(driver))
-        {
-            throw new RuntimeException("driver System property not set.");
-        }
-        else
-        {
+        if (!StringUtil.hasText(driver) || !CAPABILITIES_LOOKUP.containsKey(driver)) {
+            throw new RuntimeException("'driver' System property not set or not supported.");
+        } else {
             driverCapabilities = CAPABILITIES_LOOKUP.get(driver.toLowerCase());
+            driverCapabilities.setCapability(CapabilityType.HAS_NATIVE_EVENTS, true);
+            driverCapabilities.setCapability(CapabilityType.SUPPORTS_JAVASCRIPT, true);
 
-            if (driverCapabilities == null)
-            {
-                throw new IllegalArgumentException(
-                        String.format("No such browser > '%s'\nValid values are "
-                                      + Arrays.toString(CAPABILITIES_LOOKUP.keySet().toArray(new String[4])), driver));
-            }
+            // Uncomment this when the related bug is fixed.
+//            driverCapabilities.setCapability(CapabilityType.UNEXPECTED_ALERT_BEHAVIOUR, UnexpectedAlertBehaviour
+//                .IGNORE.toString());
+            driverCapabilities.setCapability(CapabilityType.TAKES_SCREENSHOT, true);
         }
 
         final String userName = System.getProperty("user.name");
-        if (!StringUtil.hasText(userName))
-        {
+        if (!StringUtil.hasText(userName)) {
             System.out.println("No username set!  Set the user.name system "
-                               + "property if BASIC authentication is required.");
-        }
-        else
-        {
+                                   + "property if BASIC authentication is required.");
+        } else {
             setUsername(userName);
         }
 
-        if (StringUtil.hasText(getUsername()))
-        {
+        if (StringUtil.hasText(getUsername())) {
             final String userPassword = System.getProperty("user.password");
-            if (!StringUtil.hasText(userPassword))
-            {
+            if (!StringUtil.hasText(userPassword)) {
                 System.out.println("No password set!  Set the user.password system "
-                                   + "property if BASIC authentication is required.");
-            }
-            else
-            {
+                                       + "property if BASIC authentication is required.");
+            } else {
                 setPassword(userPassword);
             }
         }
 
         // Base Host of the web application to be tested.
         final String applicationURL = System.getProperty("web.app.url");
-        if (!StringUtil.hasText(applicationURL))
-        {
+        if (!StringUtil.hasText(applicationURL)) {
             throw new RuntimeException("web.app.url System property is missing.");
-        }
-        else
-        {
+        } else {
             webURL = applicationURL;
         }
 
@@ -330,8 +292,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @deprecated Please use {@link #goTo(String, String, Class)} instead and
      * adapt to the PageObject model.
      */
-    public void goTo(final String path, final String query) throws Exception
-    {
+    public void goTo(final String path, final String query) throws Exception {
         driver.get(webURL + path + (StringUtil.hasText(query) ? ("?" + query) : ""));
     }
 
@@ -348,21 +309,19 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @throws Exception For any test execution errors
      */
     public <T extends AbstractTestWebPage> T goTo(final String path, final String query, final Class<T> pageClass)
-            throws Exception
-    {
+        throws Exception {
         final String webAppURL = webURL + path + (StringUtil.hasText(query)
-                                                  ? ("?" + query) : "");
+            ? ("?" + query) : "");
         System.out.println("Visiting: " + webAppURL);
         driver.get(webAppURL);
 
-        final Class[] constructorArgTypes = new Class[]{WebDriver.class};
+        final Class[] constructorArgTypes = new Class[] {WebDriver.class};
         final Constructor<T> constructor =
-                pageClass.getConstructor(constructorArgTypes);
+            pageClass.getConstructor(constructorArgTypes);
         return constructor.newInstance(driver);
     }
 
-    public void goBack() throws Exception
-    {
+    public void goBack() throws Exception {
         driver.navigate().back();
     }
 
@@ -371,95 +330,75 @@ public abstract class AbstractWebApplicationIntegrationTest
      *
      * @param b The boolean flag to check for truthiness.
      */
-    public void verifyTrue(final boolean b) throws Exception
-    {
-        if (!b)
-        {
+    public void verifyTrue(final boolean b) throws Exception {
+        if (!b) {
             throw new IllegalArgumentException("Verification failed.");
         }
     }
 
-    public void verifyEquals(final Object o1, final Object o2) throws Exception
-    {
+    public void verifyEquals(final Object o1, final Object o2) throws Exception {
         verifyTrue(o1.equals(o2));
     }
 
-    public void check(final By by) throws Exception
-    {
+    public void check(final By by) throws Exception {
         click(by);
     }
 
-    public void uncheck(final By by) throws Exception
-    {
-        if (find(by).isSelected())
-        {
+    public void uncheck(final By by) throws Exception {
+        if (find(by).isSelected()) {
             click(by);
         }
     }
 
-    public WebElement find(final By by) throws Exception
-    {
-        try
-        {
+    public WebElement find(final By by) throws Exception {
+        try {
             return driver.findElement(by);
-        }
-        catch (Throwable e)
-        {
+        } catch (Throwable e) {
             System.err.println("No element found: " + by.toString());
             return null;
         }
     }
 
-    public void click(final By by) throws Exception
-    {
+    public void click(final By by) throws Exception {
         waitForElementPresent(by);
         click(find(by));
     }
 
-    public void click(final WebElement elem) throws Exception
-    {
+    public void click(final WebElement elem) throws Exception {
         elem.click();
     }
 
-    public void resetForm() throws Exception
-    {
-        resetForm(By.cssSelector("input[type=\"reset\"]"));
+    public void resetForm() throws Exception {
+        resetForm(By.cssSelector("[type=\"reset\"]"));
     }
 
-    public void resetForm(final By resetButtonBy) throws Exception
-    {
+    public void resetForm(final By resetButtonBy) throws Exception {
         click(resetButtonBy);
     }
 
-    public void verifyElementChecked(final By by) throws Exception
-    {
+    public void verifyElementChecked(final By by) throws Exception {
         verifyTrue(find(by).isSelected());
     }
 
-    public void verifyElementUnChecked(final By by) throws Exception
-    {
+    public void verifyElementUnChecked(final By by) throws Exception {
         verifyFalse(find(by).isSelected());
     }
 
-    public boolean elementExists(final By by) throws Exception
-    {
+    public boolean elementExists(final By by) throws Exception {
         return (find(by) != null);
     }
 
-    public void verifyElementPresent(final By by) throws Exception
-    {
+    public void verifyElementPresent(final By by) throws Exception {
         final WebElement webElement = find(by);
         verifyFalse(webElement == null);
     }
 
-    public void verifyDisabledInput(final String idSelector) throws Exception
-    {
+    public void verifyDisabledInput(final String idSelector) throws Exception {
         final Object obj = executeJavaScript("return document.getElementById('" + idSelector + "').disabled;");
         verifyTrue((obj != null) && ((Boolean) obj));
     }
 
-    public void verifyElementNotPresent(final By by) throws Exception
-    {
+    public void verifyElementNotPresent(final By by) throws Exception {
         verifyTrue((find(by) == null));
     }
 
@@ -469,8 +408,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param source      The source element.
      * @param destination The to (target) element to drop into.
      */
-    public void dragAndDrop(final By source, final By destination) throws Exception
-    {
+    public void dragAndDrop(final By source, final By destination) throws Exception {
         (new Actions(driver)).dragAndDrop(find(source), find(destination)).perform();
     }
 
@@ -483,11 +421,10 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @throws Exception For any test execution errors
      */
     public void scrollVerticallyIntoView(final String elementID,
-                                            final String containerToScrollID)
-            throws Exception
-    {
+                                         final String containerToScrollID)
+        throws Exception {
         final String script =
-                "var myElement = document.getElementById('" + elementID
+            "var myElement = document.getElementById('" + elementID
                 + "');"
                 + "var topPos = myElement.offsetTop;"
                 + "document.getElementById('" + containerToScrollID
@@ -503,15 +440,14 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param elementIDToScroll The ID of the container.
      * @throws Exception For any test execution errors
      */
-    protected void scrollGrid(final String elementIDToScroll) throws Exception
-    {
+    protected void scrollGrid(final String elementIDToScroll) throws Exception {
         final String findByClassNameLoop =
-                "for (i in elems) {"
+            "for (i in elems) {"
                 + "if((' ' + elems[i].className + ' ').indexOf(' slick-viewport ') > -1) {"
                 + "targetDiv = elems[i];break;"
                 + "}}";
         final String script =
-                "var objDiv = document.getElementById('" + elementIDToScroll
+            "var objDiv = document.getElementById('" + elementIDToScroll
                 + "'), targetDiv; var elems = objDiv.getElementsByTagName('div'), i;"
                 + findByClassNameLoop
                 + " targetDiv.scrollTop += 25;";
@@ -525,15 +461,14 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param elementIDToScroll The ID of the container.
      * @throws Exception For any test execution errors
      */
-    protected void scrollGridHorizontally(final String elementIDToScroll) throws Exception
-    {
+    protected void scrollGridHorizontally(final String elementIDToScroll) throws Exception {
         final String findByClassNameLoop =
-                "for (i in elems) {"
+            "for (i in elems) {"
                 + "if((' ' + elems[i].className + ' ').indexOf(' slick-pane-right ') > -1) {"
                 + "targetDiv = elems[i];break;"
                 + "}}";
         final String script =
-                "var objDiv = document.getElementById('" + elementIDToScroll
+            "var objDiv = document.getElementById('" + elementIDToScroll
                 + "'), targetDiv; var elems = objDiv.getElementsByTagName('div'), i;"
                 + findByClassNameLoop
                 + " targetDiv.scrollRight += 125;";
@@ -541,58 +476,46 @@ public abstract class AbstractWebApplicationIntegrationTest
         executeJavaScript(script);
     }
 
-    public void verifyTextPresent(final By by, final String value) throws Exception
-    {
+    public void verifyTextPresent(final By by, final String value) throws Exception {
         verifyTrue(getText(by).contains(value));
     }
 
-    public void verifyTextMatches(final By by, final String regex) throws Exception
-    {
+    public void verifyTextMatches(final By by, final String regex) throws Exception {
         verifyTrue(getText(by).matches(regex));
     }
 
-    public void verifyText(final By by, final String value) throws Exception
-    {
+    public void verifyText(final By by, final String value) throws Exception {
         verifyEquals(value, getText(by));
     }
 
-    public String getText(final By by) throws Exception
-    {
+    public String getText(final By by) throws Exception {
         return find(by).getText();
     }
 
-    public boolean isTextPresent(final String text) throws Exception
-    {
+    public boolean isTextPresent(final String text) throws Exception {
         return driver.getPageSource().contains(text);
     }
 
-    public void verifyTextPresent(final String text) throws Exception
-    {
+    public void verifyTextPresent(final String text) throws Exception {
         verifyTrue(isTextPresent(text));
     }
 
-    public void verifyTextNotPresent(final String text) throws Exception
-    {
+    public void verifyTextNotPresent(final String text) throws Exception {
         verifyFalse(isTextPresent(text));
     }
 
-    public void verifyFalse(final boolean b)
-    {
-        if (b)
-        {
+    public void verifyFalse(final boolean b) {
+        if (b) {
             throw new IllegalArgumentException("Verification failed.");
         }
     }
 
-    public String getName()
-    {
+    public String getName() {
         return this.getClass().getName();
     }
 
-    public void waitForTextPresent(final String text) throws Exception
-    {
-        while (!driver.getPageSource().contains(text))
-        {
+    public void waitForTextPresent(final String text) throws Exception {
+        while (!driver.getPageSource().contains(text)) {
             waitOneSecond();
         }
 
@@ -608,76 +531,61 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @throws Exception For any test execution errors
      * @deprecated Use {@link AbstractTestWebPage#waitForTextPresent(By, String)}
      */
-    public void waitForTextPresent(final By by, final String text) throws Exception
-    {
+    public void waitForTextPresent(final By by, final String text) throws Exception {
         waitForElementPresent(by);
-        while (!find(by).getText().contains(text))
-        {
+        while (!find(by).getText().contains(text)) {
             waitFor(500L);
         }
     }
 
-    public Object executeJavaScript(final String javaScript) throws Exception
-    {
+    public Object executeJavaScript(final String javaScript) throws Exception {
         return ((JavascriptExecutor) driver).executeScript(javaScript);
     }
 
-    public void hover(final WebElement element) throws Exception
-    {
+    public void hover(final WebElement element) throws Exception {
         final Actions action = new Actions(driver);
         action.moveToElement(element).click().build().perform();
     }
 
-    public void waitForElementVisible(final By by) throws Exception
-    {
+    public void waitForElementVisible(final By by) throws Exception {
         assert (waitUntil(ExpectedConditions.visibilityOfElementLocated(by)) != null);
     }
 
-    public void waitForElementInvisible(final By by) throws Exception
-    {
+    public void waitForElementInvisible(final By by) throws Exception {
         assert (waitUntil(ExpectedConditions.invisibilityOfElementLocated(by)) != null);
     }
 
-    public void waitForElementPresent(final By by) throws Exception
-    {
-        if (waitUntil(ExpectedConditions.presenceOfElementLocated(by)) == null)
-        {
+    public void waitForElementPresent(final By by) throws Exception {
+        if (waitUntil(ExpectedConditions.presenceOfElementLocated(by)) == null) {
             fail("Could not find " + by.toString());
         }
     }
 
-    public void waitForElementNotPresent(final By by) throws Exception
-    {
+    public void waitForElementNotPresent(final By by) throws Exception {
         waitUntil(ExpectedConditions.invisibilityOfElementLocated(by));
     }
 
-    public <V> V waitUntil(final ExpectedCondition<V> expectedCondition) throws Exception
-    {
+    public <V> V waitUntil(final ExpectedCondition<V> expectedCondition) throws Exception {
         final WebDriverWait webDriverWait =
-                new WebDriverWait(driver, TIMEOUT_IN_SECONDS);
+            new WebDriverWait(driver, TIMEOUT_IN_SECONDS);
         return webDriverWait.until(expectedCondition);
     }
 
-    public String getCurrentWindowHandle() throws Exception
-    {
+    public String getCurrentWindowHandle() throws Exception {
         return driver.getWindowHandle();
     }
 
-    public WebDriver selectWindow(final String windowHandle) throws Exception
-    {
+    public WebDriver selectWindow(final String windowHandle) throws Exception {
         return driver.switchTo().window(windowHandle);
     }
 
-    public void closeWindow(final String windowHandle) throws Exception
-    {
+    public void closeWindow(final String windowHandle) throws Exception {
         selectWindow(windowHandle).close();
     }
 
-    public void waitFor(final int seconds) throws Exception
-    {
+    public void waitFor(final int seconds) throws Exception {
         int count = 0;
-        while (count <= seconds)
-        {
+        while (count <= seconds) {
             waitOneSecond();
             count++;
         }
@@ -685,33 +593,27 @@ public abstract class AbstractWebApplicationIntegrationTest
         setCurrentWaitTime(0);
     }
 
-    protected void setSeleniumServerURL(final String seleniumServerURL)
-    {
+    protected void setSeleniumServerURL(final String seleniumServerURL) {
         this.seleniumServerURL = seleniumServerURL;
     }
 
-    public String getUsername()
-    {
+    public String getUsername() {
         return username;
     }
 
-    protected void setUsername(String username)
-    {
+    protected void setUsername(String username) {
         this.username = username;
     }
 
-    public String getPassword()
-    {
+    public String getPassword() {
         return password;
     }
 
-    protected void setPassword(String password)
-    {
+    protected void setPassword(String password) {
         this.password = password;
     }
 
-    public String getWebURL()
-    {
+    public String getWebURL() {
         return webURL;
     }
 
@@ -719,18 +621,15 @@ public abstract class AbstractWebApplicationIntegrationTest
         return StringUtil.hasText(this.endpoint) ? this.endpoint : defaultEndpoint;
     }
 
-    public void setWebURL(String webURL)
-    {
+    public void setWebURL(String webURL) {
         this.webURL = webURL;
     }
 
-    public int getCurrentWaitTime()
-    {
+    public int getCurrentWaitTime() {
         return currentWaitTime;
     }
 
-    protected void setCurrentWaitTime(final int currentWaitTime)
-    {
+    protected void setCurrentWaitTime(final int currentWaitTime) {
         this.currentWaitTime = currentWaitTime;
     }
 
@@ -739,18 +638,15 @@ public abstract class AbstractWebApplicationIntegrationTest
      *
      * @param message Message to display explaining the failure.
      */
-    public void fail(final String message)
-    {
+    public void fail(final String message) {
         throw new AssertionFailedError(message);
     }
 
-    public boolean isFailOnTimeout()
-    {
+    public boolean isFailOnTimeout() {
         return failOnTimeout;
     }
 
-    protected void setFailOnTimeout(boolean failOnTimeout)
-    {
+    protected void setFailOnTimeout(boolean failOnTimeout) {
         this.failOnTimeout = failOnTimeout;
     }
 
@@ -759,14 +655,10 @@ public abstract class AbstractWebApplicationIntegrationTest
      *
      * @throws Exception If anything went wrong.
      */
-    public void waitOneSecond() throws Exception
-    {
-        if (isFailOnTimeout() && (getCurrentWaitTime() >= TIMEOUT_IN_MILLISECONDS))
-        {
+    public void waitOneSecond() throws Exception {
+        if (isFailOnTimeout() && (getCurrentWaitTime() >= TIMEOUT_IN_MILLISECONDS)) {
             fail("Timed out.");
-        }
-        else
-        {
+        } else {
             setCurrentWaitTime(getCurrentWaitTime() + 1000);
             waitFor(1000L);
         }
@@ -778,8 +670,7 @@ public abstract class AbstractWebApplicationIntegrationTest
      * @param milliseconds Time in milliseconds to wait.
      * @throws Exception For any test execution errors
      */
-    public void waitFor(final long milliseconds) throws Exception
-    {
+    public void waitFor(final long milliseconds) throws Exception {
         Thread.sleep(milliseconds);
     }
 }
