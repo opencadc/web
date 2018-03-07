@@ -70,6 +70,7 @@ package ca.nrc.cadc.web.selenium;
 
 import ca.nrc.cadc.util.StringUtil;
 import junit.framework.AssertionFailedError;
+import org.apache.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.remote.RemoteWebDriver;
@@ -86,6 +87,8 @@ import java.util.List;
 
 public abstract class AbstractTestWebPage
 {
+    private static final Logger LOGGER = Logger.getLogger(AbstractTestWebPage.class);
+
     // One minute is just too long.
     private static final int DEFAULT_TIMEOUT_IN_SECONDS = 60;
 
@@ -162,16 +165,34 @@ public abstract class AbstractTestWebPage
         verifyTrue(o1.equals(o2));
     }
 
+    /**
+     * Check the checkbox/radio button located at the given By.
+     * @param by        The location of the item to check.
+     * @throws Exception    If anything goes awry.
+     */
     protected void check(final By by) throws Exception
     {
-        click(by);
+        check(find(by));
+    }
+
+    protected void check(final WebElement element) throws Exception {
+        if (element.isSelected()) {
+            LOGGER.warn(String.format("Checkbox at %s is already checked.", element));
+        } else {
+            click(element);
+        }
     }
 
     protected void uncheck(final By by) throws Exception
     {
-        if (find(by).isSelected())
-        {
-            click(by);
+        uncheck(find(by));
+    }
+
+    protected void uncheck(final WebElement element) throws Exception {
+        if (!element.isSelected()) {
+            LOGGER.warn(String.format("Checkbox at %s is already unchecked.", element));
+        } else {
+            click(element);
         }
     }
 
@@ -287,7 +308,7 @@ public abstract class AbstractTestWebPage
 
     public void resetForm() throws Exception
     {
-        resetForm(By.cssSelector("input[type=\"reset\"]"));
+        resetForm(By.cssSelector("button[type=\"reset\"]"));
     }
 
     public void resetForm(final By resetButtonBy) throws Exception
@@ -363,7 +384,7 @@ public abstract class AbstractTestWebPage
         final String script =
                 "var myElement = document.getElementById('" + elementID
                 + "');"
-                + "var topPos = myElement.offsetTop;"
+                + "var topPos = myElement.offsetTop - 35;"
                 + "document.getElementById('" + containerToScrollID
                 + "').scrollTop = topPos;";
 
