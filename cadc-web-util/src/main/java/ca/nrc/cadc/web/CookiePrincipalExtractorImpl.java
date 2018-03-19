@@ -86,7 +86,7 @@ import java.util.Set;
 public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
     private final HttpServletRequest request;
 
-    private Collection<SSOCookieCredential> cookieCredentials;
+    private Collection<SSOCookieCredential> cookieCredentials = new HashSet<>();
     private Principal cookiePrincipal;
 
 
@@ -108,8 +108,8 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
                 try {
                     final DelegationToken cookieToken = ssoCookieManager.parse(cookie.getValue());
                     cookiePrincipal = new CookiePrincipal(cookie.getValue());
-                    cookieCredentials = ssoCookieManager.getSSOCookieCredentials(cookie.getValue(), NetUtil
-                        .getDomainName(request.getServerName()), cookieToken.getExpiryTime());
+                    cookieCredentials.addAll(ssoCookieManager.getSSOCookieCredentials(cookie.getValue(), NetUtil
+                        .getDomainName(request.getServerName()), cookieToken.getExpiryTime()));
                 } catch (IOException | InvalidDelegationTokenException e) {
                     System.out.println(
                         "Cannot use SSO Cookie. Reason: "
