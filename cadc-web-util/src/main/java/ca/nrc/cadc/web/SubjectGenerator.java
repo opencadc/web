@@ -81,17 +81,14 @@ import java.util.HashSet;
 import java.util.Set;
 
 
-public class SubjectGenerator
-{
+public class SubjectGenerator {
     private final AccessControlUtil accessControlUtil;
 
-    public SubjectGenerator(final AccessControlUtil accessControlUtil)
-    {
+    public SubjectGenerator(final AccessControlUtil accessControlUtil) {
         this.accessControlUtil = accessControlUtil;
     }
 
-    public SubjectGenerator()
-    {
+    public SubjectGenerator() {
         this(new AccessControlUtil());
     }
 
@@ -100,32 +97,29 @@ public class SubjectGenerator
      * Web method for UI instances that will generate cookies to emulate the
      * SSO system and be allowed to access, via cookie only, web services.
      *
-     * @param principalExtractor        The Principal Extractor to use.
-     * @return                          Subject instance.  Never null.
-     * @throws IOException              If the domain cannot be extracted from
-     * the server name.
+     * @param principalExtractor The Principal Extractor to use.
+     * @return Subject instance.  Never null.
+     * @throws IOException If the domain cannot be extracted from
+     *                     the server name.
      */
     public final Subject generate(final PrincipalExtractor principalExtractor)
-            throws IOException
-    {
+        throws IOException {
         final Subject subject =
-                AuthenticationUtil.getSubject(principalExtractor);
+            AuthenticationUtil.getSubject(principalExtractor);
         final Set<SSOCookieCredential> cookieCredentials =
-                subject.getPublicCredentials(SSOCookieCredential.class);
+            subject.getPublicCredentials(SSOCookieCredential.class);
         final SSOCookieCredential cookieCredential =
-                cookieCredentials.isEmpty()
+            cookieCredentials.isEmpty()
                 ? null : cookieCredentials.toArray(
-                        new SSOCookieCredential[cookieCredentials.size()])[0];
+                new SSOCookieCredential[cookieCredentials.size()])[0];
 
-        if (cookieCredential != null)
-        {
+        if (cookieCredential != null) {
             final Set<Object> publicCred = new HashSet<>();
 
-            for (final String serverName : accessControlUtil.getSSOServers())
-            {
+            for (final String serverName : accessControlUtil.getSSOServers()) {
                 publicCred.add(new SSOCookieCredential(
-                        cookieCredential.getSsoCookieValue(),
-                        NetUtil.getDomainName(serverName)));
+                    cookieCredential.getSsoCookieValue(),
+                    NetUtil.getDomainName(serverName)));
                 publicCred.add(AuthMethod.COOKIE);
             }
 
