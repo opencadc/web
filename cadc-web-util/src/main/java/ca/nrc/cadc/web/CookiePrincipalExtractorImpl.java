@@ -86,7 +86,7 @@ import java.util.Set;
 public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
     private final HttpServletRequest request;
 
-    private Collection<SSOCookieCredential> cookieCredentials = new HashSet<>();
+    private final Collection<SSOCookieCredential> cookieCredentials = new HashSet<>();
     private Principal cookiePrincipal;
 
 
@@ -101,6 +101,7 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
         final Cookie[] cookies = (requestCookies == null)
             ? new Cookie[0] : requestCookies;
         final SSOCookieManager ssoCookieManager = new SSOCookieManager();
+        cookieCredentials.clear();
 
         for (final Cookie cookie : cookies) {
             if (SSOCookieManager.DEFAULT_SSO_COOKIE_NAME.equals(cookie.getName())
