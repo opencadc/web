@@ -76,29 +76,30 @@ import ca.nrc.cadc.auth.SSOCookieCredential;
 
 import javax.security.auth.Subject;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import ca.nrc.cadc.net.NetUtil;
 import org.junit.Test;
+
 import static org.junit.Assert.*;
 import static org.easymock.EasyMock.*;
 
-public class SubjectGeneratorTest
-{
+public class SubjectGeneratorTest {
     @Test
-    public void generate() throws Exception
-    {
+    public void generate() throws Exception {
         final AccessControlUtil mockAccessControlUtil =
-                createMock(AccessControlUtil.class);
+            createMock(AccessControlUtil.class);
         final PrincipalExtractor mockPrincipalExtractor =
-                createMock(PrincipalExtractor.class);
+            createMock(PrincipalExtractor.class);
         final SubjectGenerator testSubject =
-                new SubjectGenerator(mockAccessControlUtil);
+            new SubjectGenerator(mockAccessControlUtil);
         final Set<String> domainServers = new HashSet<>();
-        final SSOCookieCredential cookieCredential =
-                new SSOCookieCredential("cookievalue",
-                                        "anotherplace.com");
+        final List<SSOCookieCredential> cookieCredentials =
+            Collections.singletonList(new SSOCookieCredential("cookievalue",
+                                                              "anotherplace.com"));
 
         final Set<Principal> principals = new HashSet<>();
 
@@ -109,34 +110,32 @@ public class SubjectGeneratorTest
         domainServers.add("mysite.onemore.com");
 
         expect(mockAccessControlUtil.getSSOServers()).andReturn(
-                domainServers).once();
-        expect(mockPrincipalExtractor.getSSOCookieCredential()).andReturn(
-                cookieCredential).once();
+            domainServers).once();
+        expect(mockPrincipalExtractor.getSSOCookieCredentials()).andReturn(
+            cookieCredentials).once();
         expect(mockPrincipalExtractor.getPrincipals()).andReturn(
-                principals).once();
+            principals).once();
         expect(mockPrincipalExtractor.getCertificateChain()).andReturn(
-                null).once();
+            null).once();
         expect(mockPrincipalExtractor.getDelegationToken()).andReturn(
-                null).once();
+            null).once();
 
         replay(mockAccessControlUtil, mockPrincipalExtractor);
 
         final Subject subject = testSubject.generate(mockPrincipalExtractor);
         final Set<SSOCookieCredential> generatedCookieCredentials =
-                subject.getPublicCredentials(SSOCookieCredential.class);
+            subject.getPublicCredentials(SSOCookieCredential.class);
         final Set<String> generatedCookieCredentialDomains = new HashSet<>();
 
         for (final SSOCookieCredential ssoCookieCredential
-                : generatedCookieCredentials)
-        {
+            : generatedCookieCredentials) {
             generatedCookieCredentialDomains.add(
-                    ssoCookieCredential.getDomain());
+                ssoCookieCredential.getDomain());
         }
 
         final Set<String> serverDomains = new HashSet<>();
 
-        for (final String domainServer : domainServers)
-        {
+        for (final String domainServer : domainServers) {
             serverDomains.add(NetUtil.getDomainName(domainServer));
         }
 
