@@ -75,51 +75,45 @@ import ca.nrc.cadc.util.StringUtil;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
-import java.net.URL;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 
-public class CookiePrincipalExtractorImpl implements PrincipalExtractor
-{
+public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
     private final HttpServletRequest request;
 
-    private SSOCookieCredential cookieCredential;
+    private final Collection<SSOCookieCredential> cookieCredentials = new HashSet<>();
     private Principal cookiePrincipal;
 
 
-    public CookiePrincipalExtractorImpl(final HttpServletRequest request)
-    {
+    public CookiePrincipalExtractorImpl(final HttpServletRequest request) {
         this.request = request;
         init();
     }
 
 
-    void init()
-    {
+    void init() {
         final Cookie[] requestCookies = request.getCookies();
         final Cookie[] cookies = (requestCookies == null)
-                                 ? new Cookie[0] : requestCookies;
-        for (final Cookie cookie : cookies)
-        {
-            if ("CADC_SSO".equals(cookie.getName())
-                && StringUtil.hasText(cookie.getValue()))
-            {
-                try
-                {
-                    cookiePrincipal =
-                            new CookiePrincipal(
-                                    cookie.getValue());
-                    cookieCredential =
-                            new SSOCookieCredential(
-                                    cookie.getValue(), NetUtil.getDomainName(
-                                            request.getServerName()));
-                }
-                catch (IOException e)
-                {
+            ? new Cookie[0] : requestCookies;
+        final SSOCookieManager ssoCookieManager = new SSOCookieManager();
+        cookieCredentials.clear();
+
+        for (final Cookie cookie : cookies) {
+            if (SSOCookieManager.DEFAULT_SSO_COOKIE_NAME.equals(cookie.getName())
+                && StringUtil.hasText(cookie.getValue())) {
+                try {
+                    final DelegationToken cookieToken = ssoCookieManager.parse(cookie.getValue());
+                    cookiePrincipal = new CookiePrincipal(cookie.getValue());
+                    cookieCredentials.addAll(ssoCookieManager.getSSOCookieCredentials(cookie.getValue(), NetUtil
+                        .getDomainName(request.getServerName()), cookieToken.getExpiryTime()));
+                } catch (IOException | InvalidDelegationTokenException e) {
                     System.out.println(
-                            "Cannot use SSO Cookie. Reason: "
+                        "Cannot use SSO Cookie. Reason: "
                             + e.getMessage());
                 }
             }
@@ -128,8 +122,7 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor
 
 
     @Override
-    public Set<Principal> getPrincipals()
-    {
+    public Set<Principal> getPrincipals() {
         final Set<Principal> principals = new HashSet<>();
 
         addHTTPPrincipal(principals);
@@ -138,34 +131,28 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor
     }
 
     @Override
-    public X509CertificateChain getCertificateChain()
-    {
+    public X509CertificateChain getCertificateChain() {
         return null;
     }
 
     @Override
-    public DelegationToken getDelegationToken()
-    {
+    public DelegationToken getDelegationToken() {
         return null;
     }
 
     @Override
-    public SSOCookieCredential getSSOCookieCredential()
-    {
-        return cookieCredential;
+    public List<SSOCookieCredential> getSSOCookieCredentials() {
+        return new ArrayList<>(cookieCredentials);
     }
 
-    private void addHTTPPrincipal(final Set<Principal> principals)
-    {
+    private void addHTTPPrincipal(final Set<Principal> principals) {
         final String httpUser = request.getRemoteUser();
 
-        if (StringUtil.hasText(httpUser))
-        {
+        if (StringUtil.hasText(httpUser)) {
             principals.add(new HttpPrincipal(httpUser));
         }
 
-        if (cookiePrincipal != null)
-        {
+        if (cookiePrincipal != null) {
             principals.add(cookiePrincipal);
         }
     }
