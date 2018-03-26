@@ -387,11 +387,11 @@
           var selectedFootprint = selectedFootprints[i]
 
           if (selectedFootprint.region === CIRCLE) {
-            _self.currentFootprint.addFootprints(A.circle(
-              selectedFootprint.coords[0], selectedFootprint.coords[1], selectedFootprint.coords[1]))
+            _self.currentFootprint.add(A.circle(
+              selectedFootprint.coords[0], selectedFootprint.coords[1], selectedFootprint.coords[2]))
           }
           else if (selectedFootprint.region === POLYGON) {
-            _self.currentFootprint.addFootprints(A.polygon(selectedFootprint.coords))
+            _self.currentFootprint.add(A.polygon(selectedFootprint.coords))
           }
         }
 
@@ -427,11 +427,18 @@
 
     function handleMouseEnter(e, args) {
       e.stopImmediatePropagation()
-      _handleAction(args.grid.getDataItem(args.cell.row))
+      var cell = args.grid.getCellFromEvent(e)
+      if (!cell) {
+        return
+      }
+      _handleAction(args.grid.getDataItem(cell.row))
     }
 
     function handleMouseLeave() {
       _resetCurrent()
+      if (_self.aladin && _self.aladin.view) {
+        _self.aladin.view.forceRedraw()
+      }
     }
 
     function handleAddFootprint(e, args) {
@@ -454,7 +461,7 @@
         var footprint = footprints[i]
 
         if (footprint.region === CIRCLE) {
-          _self.aladinOverlay.add(A.circle(footprint.coords[0], footprint.coords[1], footprint.coords[1]))
+          _self.aladinOverlay.add(A.circle(footprint.coords[0], footprint.coords[1], footprint.coords[2]))
         }
         else if (footprint.region === POLYGON) {
           _self.aladinOverlay.add(A.polygon(footprint.coords))
