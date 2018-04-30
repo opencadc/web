@@ -88,6 +88,7 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
 
     private final Collection<SSOCookieCredential> cookieCredentials = new HashSet<>();
     private Principal cookiePrincipal;
+    private Set<Principal> principals = new HashSet<>();
 
 
     public CookiePrincipalExtractorImpl(final HttpServletRequest request) {
@@ -117,15 +118,21 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
                 }
             }
         }
-    }
 
+        // Add HttpPrincipal
+        final String httpUser = request.getRemoteUser();
+
+        if (StringUtil.hasText(httpUser)) {
+            principals.add(new HttpPrincipal(httpUser));
+        }
+
+        if (cookiePrincipal != null) {
+            principals.add(cookiePrincipal);
+        }
+    }
 
     @Override
     public Set<Principal> getPrincipals() {
-        final Set<Principal> principals = new HashSet<>();
-
-        addHTTPPrincipal(principals);
-
         return principals;
     }
 
@@ -144,15 +151,4 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
         return new ArrayList<>(cookieCredentials);
     }
 
-    private void addHTTPPrincipal(final Set<Principal> principals) {
-        final String httpUser = request.getRemoteUser();
-
-        if (StringUtil.hasText(httpUser)) {
-            principals.add(new HttpPrincipal(httpUser));
-        }
-
-        if (cookiePrincipal != null) {
-            principals.add(cookiePrincipal);
-        }
-    }
 }
