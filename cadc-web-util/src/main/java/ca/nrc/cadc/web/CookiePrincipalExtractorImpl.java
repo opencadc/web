@@ -108,9 +108,10 @@ public class CookiePrincipalExtractorImpl implements PrincipalExtractor {
             if (SSOCookieManager.DEFAULT_SSO_COOKIE_NAME.equals(cookie.getName())
                 && StringUtil.hasText(cookie.getValue())) {
                 try {
+                    final DelegationToken cookieToken = ssoCookieManager.parse(cookie.getValue());
                     cookiePrincipal = new CookiePrincipal(cookie.getValue());
                     cookieCredentials.addAll(ssoCookieManager.getSSOCookieCredentials(cookie.getValue(), NetUtil
-                        .getDomainName(request.getServerName())));
+                        .getDomainName(request.getServerName()), cookieToken.getExpiryTime()));
                 } catch (IOException | InvalidDelegationTokenException e) {
                     System.out.println(
                         "Cannot use SSO Cookie. Reason: "

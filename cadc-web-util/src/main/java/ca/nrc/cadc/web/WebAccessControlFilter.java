@@ -77,16 +77,17 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 
 
-public class WebAccessControlFilter implements Filter {
+public class WebAccessControlFilter implements Filter
+{
     /**
      * Called by the web container to indicate to a filter that it is
      * being placed into service.
-     *
+     * <p>
      * <p>The servlet container calls the init
      * method exactly once after instantiating the filter. The init
      * method must complete successfully before the filter is asked to do any
      * filtering work.
-     *
+     * <p>
      * <p>The web container cannot place the filter into service if the init
      * method either
      * <ol>
@@ -97,7 +98,8 @@ public class WebAccessControlFilter implements Filter {
      * @param filterConfig
      */
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) throws ServletException
+    {
 
     }
 
@@ -107,7 +109,7 @@ public class WebAccessControlFilter implements Filter {
      * chain due to a client request for a resource at the end of the chain.
      * The FilterChain passed in to this method allows the Filter to pass
      * on the request and response to the next entity in the chain.
-     *
+     * <p>
      * <p>A typical implementation of this method would follow the following
      * pattern:
      * <ol>
@@ -137,21 +139,27 @@ public class WebAccessControlFilter implements Filter {
     public void doFilter(final ServletRequest request,
                          final ServletResponse response,
                          final FilterChain chain)
-        throws IOException, ServletException {
+            throws IOException, ServletException
+    {
         final SubjectGenerator subjectGenerator = new SubjectGenerator();
         final PrincipalExtractor principalExtractor =
-            new CookiePrincipalExtractorImpl((HttpServletRequest) request);
+                new CookiePrincipalExtractorImpl((HttpServletRequest) request);
         final Subject subject = subjectGenerator.generate(principalExtractor);
 
-        try {
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
+        try
+        {
+            Subject.doAs(subject, new PrivilegedExceptionAction<Object>()
+            {
                 @Override
-                public Object run() throws Exception {
+                public Object run() throws Exception
+                {
                     chain.doFilter(request, response);
                     return null;
                 }
             });
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             throw new ServletException(e);
         }
     }
@@ -159,19 +167,20 @@ public class WebAccessControlFilter implements Filter {
     /**
      * Called by the web container to indicate to a filter that it is being
      * taken out of service.
-     *
+     * <p>
      * <p>This method is only called once all threads within the filter's
      * doFilter method have exited or after a timeout period has passed.
      * After the web container calls this method, it will not call the
      * doFilter method again on this instance of the filter.
-     *
+     * <p>
      * <p>This method gives the filter an opportunity to clean up any
      * resources that are being held (for example, memory, file handles,
      * threads) and make sure that any persistent state is synchronized
      * with the filter's current state in memory.
      */
     @Override
-    public void destroy() {
+    public void destroy()
+    {
 
     }
 }
