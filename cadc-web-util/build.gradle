@@ -3,21 +3,27 @@ plugins {
     id 'maven'
     id 'maven-publish'
     id 'checkstyle'
-    id 'com.jfrog.bintray' version '1.8.0'
+    id 'com.jfrog.bintray' version '1.8.4'
 }
 
 repositories {
     mavenLocal()
-    jcenter()    
+    jcenter()
 }
 
 sourceCompatibility = 1.7
 group = 'org.opencadc'
-version = '1.0.15'
+version = '1.1.0'
+
+configurations.all {
+    resolutionStrategy {
+        force 'org.apache.commons:commons-configuration2:2.3'
+    }
+}
 
 dependencies {
     compile 'log4j:log4j:1.2.+'
-    compile 'org.apache.commons:commons-configuration2:2.+'
+    compile 'org.apache.commons:commons-configuration2:2.3'
     compile 'commons-beanutils:commons-beanutils:1.+'
 
     compile 'org.opencadc:cadc-util:[1.1,)'
