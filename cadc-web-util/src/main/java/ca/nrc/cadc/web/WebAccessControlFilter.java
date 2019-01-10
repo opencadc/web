@@ -69,6 +69,7 @@
 package ca.nrc.cadc.web;
 
 import ca.nrc.cadc.auth.PrincipalExtractor;
+import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 
 import javax.security.auth.Subject;
 import javax.servlet.*;
@@ -94,7 +95,7 @@ public class WebAccessControlFilter implements Filter {
      * <li>Does not return within a time period defined by the web container
      * </ol>
      *
-     * @param filterConfig
+     * @param filterConfig      Config for filters.  Empty here.
      */
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -129,9 +130,9 @@ public class WebAccessControlFilter implements Filter {
      * next entity in the filter chain.
      * </ol>
      *
-     * @param request
-     * @param response
-     * @param chain
+     * @param request       Incoming ServletRequest.
+     * @param response      ServletResponse to write to.
+     * @param chain         The chain to continue on to.
      */
     @Override
     public void doFilter(final ServletRequest request,
@@ -140,7 +141,7 @@ public class WebAccessControlFilter implements Filter {
         throws IOException, ServletException {
         final SubjectGenerator subjectGenerator = new SubjectGenerator();
         final PrincipalExtractor principalExtractor =
-            new CookiePrincipalExtractorImpl((HttpServletRequest) request);
+            new ServletPrincipalExtractor((HttpServletRequest) request);
         final Subject subject = subjectGenerator.generate(principalExtractor);
 
         try {
