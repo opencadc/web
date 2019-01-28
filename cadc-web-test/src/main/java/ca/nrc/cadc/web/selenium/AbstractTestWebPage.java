@@ -288,6 +288,7 @@ public abstract class AbstractTestWebPage {
      *
      * @param source      The source element.
      * @param destination The to (target) element to drop into.
+     * @throws Exception For any test execution errors.
      */
     protected void dragAndDrop(final By source, final By destination) throws Exception {
         (new Actions(driver)).dragAndDrop(find(source), find(destination)).perform();
