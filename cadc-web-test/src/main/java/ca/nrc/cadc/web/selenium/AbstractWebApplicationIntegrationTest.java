@@ -276,7 +276,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
         return constructor.newInstance(driver);
     }
 
-    public void goBack() throws Exception {
+    public void goBack() {
         driver.navigate().back();
     }
 
@@ -285,13 +285,13 @@ public abstract class AbstractWebApplicationIntegrationTest {
      *
      * @param b The boolean flag to check for truthiness.
      */
-    public void verifyTrue(final boolean b) throws Exception {
+    public void verifyTrue(final boolean b) {
         if (!b) {
             throw new IllegalArgumentException("Verification failed.");
         }
     }
 
-    public void verifyEquals(final Object o1, final Object o2) throws Exception {
+    public void verifyEquals(final Object o1, final Object o2) {
         verifyTrue(o1.equals(o2));
     }
 
@@ -305,7 +305,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
         }
     }
 
-    public WebElement find(final By by) throws Exception {
+    public WebElement find(final By by) {
         try {
             return driver.findElement(by);
         } catch (Throwable e) {
@@ -319,7 +319,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
         click(find(by));
     }
 
-    public void click(final WebElement elem) throws Exception {
+    public void click(final WebElement elem) {
         elem.click();
     }
 
@@ -362,6 +362,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
      *
      * @param source      The source element.
      * @param destination The to (target) element to drop into.
+     * @throws Exception For any test execution errors.
      */
     public void dragAndDrop(final By source, final By destination) throws Exception {
         (new Actions(driver)).dragAndDrop(find(source), find(destination)).perform();
@@ -484,7 +485,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
      * @param by   Finder element.
      * @param text Text to wait for.
      * @throws Exception For any test execution errors
-     * @deprecated Use {@see AbstractTestWebPage#waitForTextPresent(By, String)}
+     * @deprecated @see AbstractTestWebPage#waitForTextPresent(By, String)
      */
     public void waitForTextPresent(final By by, final String text) throws Exception {
         waitForElementPresent(by);
