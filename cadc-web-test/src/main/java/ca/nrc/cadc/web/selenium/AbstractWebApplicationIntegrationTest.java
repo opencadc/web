@@ -73,7 +73,6 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -81,20 +80,15 @@ import java.util.concurrent.TimeUnit;
 import junit.framework.AssertionFailedError;
 import org.apache.commons.io.FileUtils;
 
-import org.junit.Rule;
-import org.junit.rules.ExternalResource;
-import org.junit.runner.Description;
-import org.junit.runners.model.Statement;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxOptions;
-import org.openqa.selenium.firefox.FirefoxProfile;
 import org.openqa.selenium.interactions.Actions;
 import org.openqa.selenium.opera.OperaOptions;
 import org.openqa.selenium.remote.Augmenter;
-import org.openqa.selenium.remote.BrowserType;
 import org.openqa.selenium.remote.CapabilityType;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.safari.SafariOptions;
 import org.openqa.selenium.support.ui.ExpectedCondition;
@@ -123,179 +117,122 @@ public abstract class AbstractWebApplicationIntegrationTest {
         CAPABILITIES_LOOKUP.put("opera", new OperaOptions());
     }
 
-    private String seleniumServerURL;
-    private String webURL;
-    private String endpoint;
-    private String username;
-    private String password;
+
     private int currentWaitTime;
     private boolean failOnTimeout;
 
-    protected MutableCapabilities driverCapabilities;
-    protected WebDriver driver;
+    private static String seleniumServerURL = System.getProperty("selenium.server.url");
+    protected static String webURL;
+    protected static MutableCapabilities driverCapabilities;
+    protected static WebDriver driver;
+    protected static String username;
+    protected static String password;
 
 
-    @Rule
-    public ExternalResource testWatcher = new ExternalResource() {
-        @Override
-        public Statement apply(final Statement base,
-                               final Description description) {
-            return new Statement() {
-                @Override
-                public void evaluate() throws Throwable {
-                    before();
-                    try {
-                        base.evaluate();
-                    } catch (Throwable t) {
-                        captureScreenShot(description.getClassName() + "." + description.getMethodName());
-                        throw t;
-                    } finally {
-                        after();
-                    }
-                }
-            };
-        }
+//    @Rule
+//    public ExternalResource testWatcher = new ExternalResource() {
+//        @Override
+//        public Statement apply(final Statement base,
+//                               final Description description) {
+//            return new Statement() {
+//                @Override
+//                public void evaluate() throws Throwable {
+//                    before();
+//                    try {
+//                        base.evaluate();
+//                    } catch (Throwable t) {
+//                        captureScreenShot(description.getClassName() + "." + description.getMethodName());
+//                        throw t;
+//                    } finally {
+//                        after();
+//                    }
+//                }
+//            };
+//        }
+//
+//
+//    };
 
-        /**
-         * Override to set up your specific external resource.
-         *
-         * @throws Throwable if setup fails (which will disable {@code after}
-         */
-        @Override
-        protected void before() {
-            try {
-                final String seleniumURL;
-                if (seleniumServerURL.contains(SELENIUM_SERVER_URL_ENDPOINT)) {
-                    seleniumURL = seleniumServerURL;
-                } else {
-                    seleniumURL = seleniumServerURL + SELENIUM_SERVER_URL_ENDPOINT;
-                }
+    /**
+     * Override to set up your specific external resource.
+     */
+    @BeforeClass
+    public static void setUp() {
+        try {
+            final String seleniumURL =
+                seleniumServerURL + (seleniumServerURL.contains(SELENIUM_SERVER_URL_ENDPOINT) ? "" :
+                    SELENIUM_SERVER_URL_ENDPOINT);
+            System.out.println("Connecting to " + seleniumURL);
 
-                System.out.println("Connecting to " + seleniumURL);
-
-                driver = new RemoteWebDriver(new URL(seleniumURL), driverCapabilities);
-            } catch (MalformedURLException e) {
-                System.err.println("Can't create URL.");
-                e.printStackTrace(System.err);
-                throw new RuntimeException(e);
-            }
-
-            driver.manage().window().maximize();
-
-            final WebDriver.Timeouts timeouts = driver.manage().timeouts();
-
-            // Safari does not support setTimeout.
-            if (!driverCapabilities.getBrowserName().contains("afari")) {
-                // Set the timeout to four minutes.
-                timeouts.pageLoadTimeout(TIMEOUT_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
-            }
-
-            timeouts.setScriptTimeout(TIMEOUT_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
-        }
-
-        /**
-         * Override to tear down your specific external resource.
-         */
-        @Override
-        protected void after() {
-            if (driver != null) {
-                try {
-                    driver.quit();
-                } catch (Exception de) {
-                    System.err.println("Driver could not quit!");
-                    de.printStackTrace(System.err);
-                } finally {
-                    driver = null;
-                }
-            }
-
-            System.out.println("Finished.");
-        }
-
-        void captureScreenShot(final String methodName) throws IOException {
-            final String filename = methodName + ".png";
-            final WebDriver augmentedDriver = new Augmenter().augment(driver);
-            final File sourceFile = ((TakesScreenshot) augmentedDriver).getScreenshotAs(OutputType.FILE);
-
-            FileUtils.copyFile(sourceFile, new File("./" + filename));
-
-            System.err.println(String.format("Saved screenshot as '%s'", filename));
-        }
-    };
-
-
-    public AbstractWebApplicationIntegrationTest() throws Exception {
-        // Base Host of the web application to be tested.
-        final String seleniumURL = System.getProperty("selenium.server.url");
-        if (seleniumURL == null) {
-            throw new RuntimeException("selenium.server.url System property not set");
-        } else {
-            seleniumServerURL = seleniumURL;
-        }
-
-        // Schema of the web application to be tested.
-        final String driver = System.getProperty("driver");
-        if (!StringUtil.hasText(driver) || !CAPABILITIES_LOOKUP.containsKey(driver)) {
-            throw new RuntimeException("'driver' System property not set or not supported.");
-        } else {
-            driverCapabilities = CAPABILITIES_LOOKUP.get(driver.toLowerCase());
+            final String browserDriverName = System.getProperty("driver");
+            driverCapabilities = CAPABILITIES_LOOKUP.get(browserDriverName.toLowerCase());
             driverCapabilities.setCapability(CapabilityType.HAS_NATIVE_EVENTS, true);
             driverCapabilities.setCapability(CapabilityType.SUPPORTS_JAVASCRIPT, true);
-
-            // Uncomment this when the related bug is fixed.
-//            driverCapabilities.setCapability(CapabilityType.UNEXPECTED_ALERT_BEHAVIOUR, UnexpectedAlertBehaviour
-//                .IGNORE.toString());
             driverCapabilities.setCapability(CapabilityType.TAKES_SCREENSHOT, true);
+
+            driver = new RemoteWebDriver(new URL(seleniumURL), driverCapabilities);
+
+            username = System.getProperty("user.name");
+            password = System.getProperty("user.password");
+            webURL = System.getProperty("web.app.url");
+        } catch (MalformedURLException e) {
+            System.err.println("Can't create URL.");
+            e.printStackTrace(System.err);
+            throw new RuntimeException(e);
         }
 
-        final String userName = System.getProperty("user.name");
-        if (!StringUtil.hasText(userName)) {
-            System.out.println("No username set!  Set the user.name system "
-                                   + "property if BASIC authentication is required.");
-        } else {
-            setUsername(userName);
+        driver.manage().window().maximize();
+
+        final WebDriver.Timeouts timeouts = driver.manage().timeouts();
+
+        // Safari does not support setTimeout.
+        if (!driverCapabilities.getBrowserName().contains("afari")) {
+            // Set the timeout to four minutes.
+            timeouts.pageLoadTimeout(TIMEOUT_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
         }
 
-        if (StringUtil.hasText(getUsername())) {
-            final String userPassword = System.getProperty("user.password");
-            if (!StringUtil.hasText(userPassword)) {
-                System.out.println("No password set!  Set the user.password system "
-                                       + "property if BASIC authentication is required.");
-            } else {
-                setPassword(userPassword);
+        timeouts.setScriptTimeout(TIMEOUT_IN_MILLISECONDS, TimeUnit.MILLISECONDS);
+    }
+
+
+    /**
+     * Override to tear down your specific external resource.
+     */
+    @AfterClass
+    public static void tearDown() {
+        if (driver != null) {
+            try {
+                driver.manage().deleteAllCookies();
+                driver.quit();
+            } catch (Exception de) {
+                System.err.println("Driver could not quit!");
+                de.printStackTrace(System.err);
             }
         }
 
-        // Base Host of the web application to be tested.
-        final String applicationURL = System.getProperty("web.app.url");
-        if (!StringUtil.hasText(applicationURL)) {
-            throw new RuntimeException("web.app.url System property is missing.");
-        } else {
-            webURL = applicationURL;
-        }
+        System.out.println("Finished.");
+    }
 
-        final String configuredEndpoint = System.getProperty("web.app.endpoint");
-        this.endpoint = StringUtil.hasText(configuredEndpoint) ? configuredEndpoint : null;
+    protected void captureScreenShot(final String outputFileName) throws IOException {
+        final String filename = outputFileName + ".png";
+        final WebDriver augmentedDriver = new Augmenter().augment(driver);
+        final File sourceFile = ((TakesScreenshot) augmentedDriver).getScreenshotAs(OutputType.FILE);
 
+        FileUtils.copyFile(sourceFile, new File("./" + filename));
+
+        System.err.println(String.format("Saved screenshot as '%s'", filename));
+    }
+
+
+    public AbstractWebApplicationIntegrationTest() {
         System.out.println("Web URL: " + webURL);
         System.out.println("Selenium Server: " + seleniumServerURL);
         System.out.println("Done with Abstract Web Test constructor.");
     }
 
-    /**
-     * Navigate to the given location.
-     *
-     * @param path  The navigation path.
-     * @param query The query.
-     * @throws Exception For any test problems.
-     * @see <a href="https://code.google.com/p/selenium/wiki/PageObjects">Page Objects</a>
-     * @deprecated Please use {@link #goTo(String, String, Class)} instead and
-     * adapt to the PageObject model.
-     */
-    public void goTo(final String path, final String query) throws Exception {
-        driver.get(webURL + path + (StringUtil.hasText(query) ? ("?" + query) : ""));
+    public <T extends AbstractTestWebPage> T goToMain(final Class<T> pageClass) throws Exception {
+        return goTo("", "", pageClass);
     }
-
 
     /**
      * Visit the given path with a query attached to it.  Return the page with
@@ -310,7 +247,25 @@ public abstract class AbstractWebApplicationIntegrationTest {
      */
     public <T extends AbstractTestWebPage> T goTo(final String path, final String query, final Class<T> pageClass)
         throws Exception {
-        final String webAppURL = webURL + path + (StringUtil.hasText(query)
+        return goTo(webURL, path, query, pageClass);
+    }
+
+    /**
+     * Visit the given path with a query attached to it.  Return the page with
+     * the given class.
+     *
+     * @param baseURL   The base URL.
+     * @param path      The navigation path.
+     * @param query     The query.
+     * @param pageClass The class of the returned instance.
+     * @param <T>       The type of Page to return.
+     * @return A page element.
+     * @throws Exception For any test execution errors
+     */
+    public <T extends AbstractTestWebPage> T goTo(final String baseURL, final String path, final String query,
+                                                  final Class<T> pageClass)
+        throws Exception {
+        final String webAppURL = baseURL + path + (StringUtil.hasText(query)
             ? ("?" + query) : "");
         System.out.println("Visiting: " + webAppURL);
         driver.get(webAppURL);
@@ -529,7 +484,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
      * @param by   Finder element.
      * @param text Text to wait for.
      * @throws Exception For any test execution errors
-     * @deprecated Use {@link AbstractTestWebPage#waitForTextPresent(By, String)}
+     * @deprecated Use {@see AbstractTestWebPage#waitForTextPresent(By, String)}
      */
     public void waitForTextPresent(final By by, final String text) throws Exception {
         waitForElementPresent(by);
@@ -591,38 +546,6 @@ public abstract class AbstractWebApplicationIntegrationTest {
         }
 
         setCurrentWaitTime(0);
-    }
-
-    protected void setSeleniumServerURL(final String seleniumServerURL) {
-        this.seleniumServerURL = seleniumServerURL;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    protected void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    protected void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getWebURL() {
-        return webURL;
-    }
-
-    public String getEndpoint(final String defaultEndpoint) {
-        return StringUtil.hasText(this.endpoint) ? this.endpoint : defaultEndpoint;
-    }
-
-    public void setWebURL(String webURL) {
-        this.webURL = webURL;
     }
 
     public int getCurrentWaitTime() {
