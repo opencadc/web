@@ -93,7 +93,8 @@ public abstract class AbstractTestWebPage {
 
     static final By PARENT_ELEMENT_BY = By.xpath("..");
 
-    protected WebDriver driver;
+    protected final WebDriver driver;
+    protected final WebDriverWait wait;
     protected final int timeoutInSeconds;
 
 
@@ -103,6 +104,7 @@ public abstract class AbstractTestWebPage {
 
     public AbstractTestWebPage(final WebDriver driver, final int timeoutInSeconds) {
         this.driver = driver;
+        this.wait = new WebDriverWait(driver, DEFAULT_TIMEOUT_IN_SECONDS);
         this.timeoutInSeconds = timeoutInSeconds;
     }
 
@@ -505,8 +507,7 @@ public abstract class AbstractTestWebPage {
     }
 
     protected <V> V waitUntil(final ExpectedCondition<V> expectedCondition) throws Exception {
-        final WebDriverWait webDriverWait = new WebDriverWait(driver, timeoutInSeconds);
-        return webDriverWait.until(expectedCondition);
+        return this.wait.until(expectedCondition);
     }
 
     protected String getCurrentWindowHandle() throws Exception {
