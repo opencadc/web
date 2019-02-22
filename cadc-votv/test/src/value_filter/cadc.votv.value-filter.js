@@ -71,3 +71,10 @@ test("String exact match filter.", 7, function ()
   equal(viewer.valueFilters(testVal, "Pension"), true, "Should filter");
   equal(viewer.valueFilters(testVal, "abseNce"), true, "Should filter");
 });
+
+test("DEC filter without '+' symbol.", 3, function () {
+  var viewer = new cadc.vot.Viewer("#myGrid", options);
+  equal(viewer.valueFilters("< 10", "+80:70:30"), true, "Should be filtered.");
+  equal(viewer.valueFilters("> 81", "+80:70:30"), true, "Should be filtered out.");
+  equal(viewer.valueFilters("80..81", "+80:70:30"), false, "Should stay.");
+})
