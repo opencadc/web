@@ -82,6 +82,9 @@ import org.apache.commons.io.FileUtils;
 
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxOptions;
@@ -129,29 +132,25 @@ public abstract class AbstractWebApplicationIntegrationTest {
     protected static String password;
 
 
-//    @Rule
-//    public ExternalResource testWatcher = new ExternalResource() {
-//        @Override
-//        public Statement apply(final Statement base,
-//                               final Description description) {
-//            return new Statement() {
-//                @Override
-//                public void evaluate() throws Throwable {
-//                    before();
-//                    try {
-//                        base.evaluate();
-//                    } catch (Throwable t) {
-//                        captureScreenShot(description.getClassName() + "." + description.getMethodName());
-//                        throw t;
-//                    } finally {
-//                        after();
-//                    }
-//                }
-//            };
-//        }
-//
-//
-//    };
+    @Rule
+    public TestWatcher screenshotWatcher = new TestWatcher() {
+        @Override
+        protected void failed(Throwable e, Description description) {
+            try {
+                e.printStackTrace(System.err);
+                captureScreenShot(description.getClassName() + "." + description.getMethodName());
+            } catch (Exception e2) {
+                System.err.println("Unable to capture screenshot: ");
+                e2.printStackTrace(System.err);
+            }
+        }
+
+        @Override
+        protected void succeeded(Description description) {
+
+        }
+    };
+
 
     /**
      * Override to set up your specific external resource.
@@ -161,7 +160,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
         try {
             final String seleniumURL =
                 seleniumServerURL + (seleniumServerURL.contains(SELENIUM_SERVER_URL_ENDPOINT) ? "" :
-                    SELENIUM_SERVER_URL_ENDPOINT);
+                                         SELENIUM_SERVER_URL_ENDPOINT);
             System.out.println("Connecting to " + seleniumURL);
 
             final String browserDriverName = System.getProperty("driver");
@@ -243,6 +242,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
      * @param pageClass The class of the returned instance.
      * @param <T>       The type of Page to return.
      * @return A page element.
+     *
      * @throws Exception For any test execution errors
      */
     public <T extends AbstractTestWebPage> T goTo(final String path, final String query, final Class<T> pageClass)
@@ -260,13 +260,14 @@ public abstract class AbstractWebApplicationIntegrationTest {
      * @param pageClass The class of the returned instance.
      * @param <T>       The type of Page to return.
      * @return A page element.
+     *
      * @throws Exception For any test execution errors
      */
     public <T extends AbstractTestWebPage> T goTo(final String baseURL, final String path, final String query,
                                                   final Class<T> pageClass)
         throws Exception {
         final String webAppURL = baseURL + path + (StringUtil.hasText(query)
-            ? ("?" + query) : "");
+                                                       ? ("?" + query) : "");
         System.out.println("Visiting: " + webAppURL);
         driver.get(webAppURL);
 
