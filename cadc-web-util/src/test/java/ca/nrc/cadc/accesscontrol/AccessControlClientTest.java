@@ -71,46 +71,55 @@ package ca.nrc.cadc.accesscontrol;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
+import java.net.URL;
 import java.util.Map;
 
+import ca.nrc.cadc.auth.AuthMethod;
+import ca.nrc.cadc.reg.Standards;
+import ca.nrc.cadc.reg.client.RegistryClient;
+
 import org.junit.Test;
+
 import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 
-public class AccessControlClientTest
-{
+public class AccessControlClientTest {
+
     @Test
-    public void login() throws Exception
-    {
-        final AccessControlClient testSubject =
-                new AccessControlClient(null, null)
-        {
-            /**
-             * Post the output.
-             *
-             * @param payload The payload to send.
-             * @param out     The stream for any output.
-             * @return Int response code.
-             */
-            @Override
-            int post(Map<String, Object> payload, OutputStream out)
-            {
-                try
-                {
-                    out.write("MYCOOKIE".getBytes());
-                    return 200;
-                }
-                catch (IOException e)
-                {
-                    // Shouldn't ever happen.
-                    throw new RuntimeException(e);
-                }
-            }
-        };
+    public void login() throws Exception {
+        final RegistryClient mockRegistryClient = mock(RegistryClient.class);
+        final URI serviceURI = URI.create("ivo://domain.org/myacservice");
+        final URL serviceURL = new URL("https://services.domain.org/access_control/login");
 
-        final String cookieValue =
-                testSubject.login("test", "testpass".toCharArray());
-        assertEquals("Wrong cookie value", "MYCOOKIE",
-                     cookieValue);
+        when(mockRegistryClient.getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON)).thenReturn(
+            serviceURL);
+
+        final AccessControlClient testSubject =
+            new AccessControlClient(serviceURI, mockRegistryClient) {
+                /**
+                 * Post the output.
+                 *
+                 * @param payload The payload to send.
+                 * @param out     The stream for any output.
+                 * @return Int response code.
+                 */
+                @Override
+                int post(URL url, Map<String, Object> payload, OutputStream out) {
+                    try {
+                        out.write("MYCOOKIE".getBytes());
+                        return 200;
+                    } catch (IOException e) {
+                        // Shouldn't ever happen.
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+
+        final String cookieValue = testSubject.login("test", "testpass".toCharArray());
+        assertEquals("Wrong cookie value", "MYCOOKIE", cookieValue);
+
+        verify(mockRegistryClient, times(1)).getServiceURL(serviceURI, Standards.UMS_LOGIN_01, AuthMethod.ANON);
     }
 }

@@ -13,7 +13,7 @@ repositories {
 
 sourceCompatibility = 1.7
 group = 'org.opencadc'
-version = '1.2.0'
+version = '1.2.1'
 
 configurations.all {
     resolutionStrategy {
@@ -30,6 +30,8 @@ dependencies {
     compile 'org.opencadc:cadc-registry:1.+'
 
     testCompile 'junit:junit:4.+'
+    // Move into Mockito.
+    testCompile 'org.mockito:mockito-core:[2.25, )'
     testCompile 'org.easymock:easymock:3.+'
 }
 
