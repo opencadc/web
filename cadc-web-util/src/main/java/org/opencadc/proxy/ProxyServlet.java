@@ -71,10 +71,10 @@ package org.opencadc.proxy;
 
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.net.FileContent;
-import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpPost;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.reg.client.RegistryClient;
+import ca.nrc.cadc.util.StringUtil;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletResponse;
@@ -83,7 +83,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -97,6 +96,7 @@ import java.util.Map;
  * Any proxying will ALWAYS follow redirects.
  */
 public class ProxyServlet extends HttpServlet {
+
     private static final String REQUEST_HEADER_PREFIX = "X-CADC-Proxy_";
 
     /**
@@ -108,7 +108,7 @@ public class ProxyServlet extends HttpServlet {
         return new RegistryClient();
     }
 
-    final Map<String, String[]> buildRequestParameterMap(final Map<String, String[]> requestParameters) {
+    private Map<String, String[]> buildRequestParameterMap(final Map<String, String[]> requestParameters) {
         final Map<String, String[]> requestParameterMap = new HashMap<>();
         for (final RequestParameterName requestParameterName : RequestParameterName.values()) {
             final String[] values = requestParameters.get(requestParameterName.name());
@@ -120,7 +120,7 @@ public class ProxyServlet extends HttpServlet {
         return requestParameterMap;
     }
 
-    final ServiceParameterMap buildServiceParameterMap(final Map<String, String[]> requestParameters) {
+    private ServiceParameterMap buildServiceParameterMap(final Map<String, String[]> requestParameters) {
         final ServiceParameterMap serviceParameterMap = new ServiceParameterMap();
         for (final ServiceParameterName serviceParameterName : ServiceParameterName.values()) {
             serviceParameterMap.putFirst(serviceParameterName, requestParameters.get(serviceParameterName.name()));
@@ -129,7 +129,7 @@ public class ProxyServlet extends HttpServlet {
         return serviceParameterMap;
     }
 
-    final ServiceParameterMap buildServiceParameterMap(final HttpServletRequest request) {
+    private ServiceParameterMap buildServiceParameterMap(final HttpServletRequest request) {
         final ServiceParameterMap serviceParameterMap = new ServiceParameterMap();
         for (final ServiceParameterName serviceParameterName : ServiceParameterName.values()) {
             serviceParameterMap.put(serviceParameterName,
@@ -145,14 +145,15 @@ public class ProxyServlet extends HttpServlet {
         final URL serviceURL = registryClient.getServiceURL(serviceParameters.getURI(ServiceParameterName.RESOURCE_ID),
                                                             serviceParameters.getURI(ServiceParameterName.STANDARD_ID),
                                                             AuthMethod.valueOf(
-                                                                serviceParameters.get(ServiceParameterName.AUTH_TYPE)
-                                                                                 .toUpperCase()),
+                                                                    serviceParameters
+                                                                            .get(ServiceParameterName.AUTH_TYPE)
+                                                                            .toUpperCase()),
                                                             serviceParameters
-                                                                .getURI(ServiceParameterName.INTERFACE_TYPE_ID));
+                                                                    .getURI(ServiceParameterName.INTERFACE_TYPE_ID));
 
         if (serviceURL == null) {
             throw new IllegalArgumentException("No Service URL matching provided parameters:\n\n"
-                                                   + serviceParameters.toString() + "\n\n");
+                                                       + serviceParameters.toString() + "\n\n");
         } else {
 
             final URL serviceURLWithPath;
@@ -168,7 +169,7 @@ public class ProxyServlet extends HttpServlet {
                 final String extraQuery = serviceParameters.get(ServiceParameterName.EXTRA_QUERY);
                 serviceURLWithQuery = new URL(serviceURLWithPath,
                                               serviceURLWithPath.getPath() + (extraQuery.startsWith("?") ? extraQuery
-                                                                                  : "?" + extraQuery));
+                                                      : "?" + extraQuery));
             } else {
                 serviceURLWithQuery = serviceURLWithPath;
             }
@@ -269,12 +270,8 @@ public class ProxyServlet extends HttpServlet {
             resp.setContentType(post.getResponseContentType());
             resp.setStatus(post.getResponseCode());
         } else {
-            final HttpDownload downloadRedirect = getHttpDownload(redirectURL, resp.getOutputStream());
-            downloadRedirect.run();
-
-            resp.setContentLength(new Integer(Long.toString(downloadRedirect.getContentLength())));
-            resp.setContentType(downloadRedirect.getContentType());
-            resp.setStatus(downloadRedirect.getResponseCode());
+            final HttpProxy proxyRedirect = getHttpProxy(redirectURL, resp);
+            proxyRedirect.run();
         }
     }
 
@@ -327,8 +324,8 @@ public class ProxyServlet extends HttpServlet {
         resp.setStatus(put.getResponseCode());
     }
 
-    HttpDownload getHttpDownload(final URL url, final OutputStream outputStream) {
-        return new HttpDownload(url, outputStream);
+    HttpProxy getHttpProxy(final URL url, final HttpServletResponse response) {
+        return new HttpProxy(url, response);
     }
 
     /**
@@ -383,12 +380,22 @@ public class ProxyServlet extends HttpServlet {
      */
     @Override
     protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
-        throws IOException {
+            throws IOException {
         final URL serviceURL = lookupServiceURL(req.getParameterMap());
-        final HttpDownload download = getHttpDownload(serviceURL, resp.getOutputStream());
+        final HttpProxy proxy = getHttpProxy(serviceURL, resp);
 
-        download.setRequestProperty("Accept", req.getHeader("Accept"));
-        download.setFollowRedirects(true);
-        download.run();
+        final String contentType = req.getContentType();
+
+        if (StringUtil.hasText(contentType)) {
+            proxy.setRequestProperty("Content-Type", contentType);
+        }
+
+        final String acceptContentType = req.getHeader("Accept");
+
+        if (StringUtil.hasText(acceptContentType)) {
+            proxy.setRequestProperty("Accept", acceptContentType);
+        }
+
+        proxy.run();
     }
 }
