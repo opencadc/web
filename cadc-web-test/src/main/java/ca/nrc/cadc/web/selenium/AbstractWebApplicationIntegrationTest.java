@@ -168,6 +168,8 @@ public abstract class AbstractWebApplicationIntegrationTest {
             driverCapabilities.setCapability(CapabilityType.HAS_NATIVE_EVENTS, true);
             driverCapabilities.setCapability(CapabilityType.SUPPORTS_JAVASCRIPT, true);
             driverCapabilities.setCapability(CapabilityType.TAKES_SCREENSHOT, true);
+            driverCapabilities.setCapability(CapabilityType.ACCEPT_INSECURE_CERTS, true);
+            driverCapabilities.setCapability(CapabilityType.ACCEPT_SSL_CERTS, true);
 
             driver = new RemoteWebDriver(new URL(seleniumURL), driverCapabilities);
 
