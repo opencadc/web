@@ -82,6 +82,7 @@ import java.util.Set;
 
 
 public class SubjectGenerator {
+
     private final AccessControlUtil accessControlUtil;
 
     public SubjectGenerator(final AccessControlUtil accessControlUtil) {
@@ -99,27 +100,26 @@ public class SubjectGenerator {
      *
      * @param principalExtractor The Principal Extractor to use.
      * @return Subject instance.  Never null.
+     *
      * @throws IOException If the domain cannot be extracted from
      *                     the server name.
      */
     public final Subject generate(final PrincipalExtractor principalExtractor)
-        throws IOException {
+            throws IOException {
         final Subject subject =
-            AuthenticationUtil.getSubject(principalExtractor);
+                AuthenticationUtil.getSubject(principalExtractor);
         final Set<SSOCookieCredential> cookieCredentials =
-            subject.getPublicCredentials(SSOCookieCredential.class);
+                subject.getPublicCredentials(SSOCookieCredential.class);
         final SSOCookieCredential cookieCredential =
-            cookieCredentials.isEmpty()
-                ? null : cookieCredentials.toArray(
-                new SSOCookieCredential[cookieCredentials.size()])[0];
+                cookieCredentials.isEmpty() ? null : cookieCredentials.toArray(new SSOCookieCredential[0])[0];
 
         if (cookieCredential != null) {
             final Set<Object> publicCred = new HashSet<>();
 
             for (final String serverName : accessControlUtil.getSSOServers()) {
                 publicCred.add(new SSOCookieCredential(
-                    cookieCredential.getSsoCookieValue(),
-                    NetUtil.getDomainName(serverName)));
+                        cookieCredential.getSsoCookieValue(),
+                        NetUtil.getDomainName(serverName)));
                 publicCred.add(AuthMethod.COOKIE);
             }
 

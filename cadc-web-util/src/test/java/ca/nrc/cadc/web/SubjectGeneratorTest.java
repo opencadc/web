@@ -85,21 +85,20 @@ import ca.nrc.cadc.net.NetUtil;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
-import static org.easymock.EasyMock.*;
+import static org.mockito.Mockito.*;
+
 
 public class SubjectGeneratorTest {
+
     @Test
     public void generate() throws Exception {
-        final AccessControlUtil mockAccessControlUtil =
-            createMock(AccessControlUtil.class);
-        final PrincipalExtractor mockPrincipalExtractor =
-            createMock(PrincipalExtractor.class);
-        final SubjectGenerator testSubject =
-            new SubjectGenerator(mockAccessControlUtil);
+        final AccessControlUtil mockAccessControlUtil = mock(AccessControlUtil.class);
+        final PrincipalExtractor mockPrincipalExtractor = mock(PrincipalExtractor.class);
+        final SubjectGenerator testSubject = new SubjectGenerator(mockAccessControlUtil);
         final Set<String> domainServers = new HashSet<>();
         final List<SSOCookieCredential> cookieCredentials =
-            Collections.singletonList(new SSOCookieCredential("cookievalue",
-                                                              "anotherplace.com"));
+                Collections.singletonList(new SSOCookieCredential("cookievalue",
+                                                                  "anotherplace.com"));
 
         final Set<Principal> principals = new HashSet<>();
 
@@ -109,28 +108,21 @@ public class SubjectGeneratorTest {
         domainServers.add("mysite.anotherplace.com");
         domainServers.add("mysite.onemore.com");
 
-        expect(mockAccessControlUtil.getSSOServers()).andReturn(
-            domainServers).once();
-        expect(mockPrincipalExtractor.getSSOCookieCredentials()).andReturn(
-            cookieCredentials).once();
-        expect(mockPrincipalExtractor.getPrincipals()).andReturn(
-            principals).once();
-        expect(mockPrincipalExtractor.getCertificateChain()).andReturn(
-            null).once();
-        expect(mockPrincipalExtractor.getDelegationToken()).andReturn(
-            null).once();
-
-        replay(mockAccessControlUtil, mockPrincipalExtractor);
+        when(mockAccessControlUtil.getSSOServers()).thenReturn(domainServers);
+        when(mockPrincipalExtractor.getSSOCookieCredentials()).thenReturn(cookieCredentials);
+        when(mockPrincipalExtractor.getPrincipals()).thenReturn(principals);
+        when(mockPrincipalExtractor.getCertificateChain()).thenReturn(null);
+        when(mockPrincipalExtractor.getDelegationToken()).thenReturn(null);
 
         final Subject subject = testSubject.generate(mockPrincipalExtractor);
         final Set<SSOCookieCredential> generatedCookieCredentials =
-            subject.getPublicCredentials(SSOCookieCredential.class);
+                subject.getPublicCredentials(SSOCookieCredential.class);
         final Set<String> generatedCookieCredentialDomains = new HashSet<>();
 
         for (final SSOCookieCredential ssoCookieCredential
-            : generatedCookieCredentials) {
+                : generatedCookieCredentials) {
             generatedCookieCredentialDomains.add(
-                ssoCookieCredential.getDomain());
+                    ssoCookieCredential.getDomain());
         }
 
         final Set<String> serverDomains = new HashSet<>();
@@ -142,6 +134,10 @@ public class SubjectGeneratorTest {
         assertEquals("Wrong domains.", serverDomains,
                      generatedCookieCredentialDomains);
 
-        verify(mockAccessControlUtil, mockPrincipalExtractor);
+        verify(mockAccessControlUtil, times(1)).getSSOServers();
+        verify(mockPrincipalExtractor, times(1)).getSSOCookieCredentials();
+        verify(mockPrincipalExtractor, times(1)).getCertificateChain();
+        verify(mockPrincipalExtractor, times(1)).getPrincipals();
+        verify(mockPrincipalExtractor, times(1)).getDelegationToken();
     }
 }

@@ -76,23 +76,17 @@ import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.Assert.*;
-import static org.easymock.EasyMock.*;
+import static org.mockito.Mockito.*;
 
 
-public class AccessControlUtilTest
-{
+public class AccessControlUtilTest {
+
     @Test
-    public void getSSOServers() throws Exception
-    {
-        final ApplicationConfiguration mockConfiguration =
-                createMock(ApplicationConfiguration.class);
-        final AccessControlUtil testSubject =
-                new AccessControlUtil(mockConfiguration);
+    public void getSSOServers() {
+        final ApplicationConfiguration mockConfiguration = mock(ApplicationConfiguration.class);
+        final AccessControlUtil testSubject = new AccessControlUtil(mockConfiguration);
 
-        expect(mockConfiguration.lookup(AccessControlUtil.SSO_SERVERS_KEY))
-                .andReturn("1 5  6");
-
-        replay(mockConfiguration);
+        when(mockConfiguration.lookup(AccessControlUtil.SSO_SERVERS_KEY)).thenReturn("1 5  6");
 
         final Set<String> expected = new HashSet<>();
 
@@ -100,9 +94,22 @@ public class AccessControlUtilTest
         expected.add("5");
         expected.add("6");
 
-        assertEquals("Wrong server list.", expected,
-                     testSubject.getSSOServers());
+        assertEquals("Wrong server list.", expected, testSubject.getSSOServers());
 
-        verify(mockConfiguration);
+        verify(mockConfiguration, times(1)).lookup(AccessControlUtil.SSO_SERVERS_KEY);
+    }
+
+    @Test
+    public void getCookieLifetimeMinutes() {
+        final ApplicationConfiguration mockConfiguration = mock(ApplicationConfiguration.class);
+        final AccessControlUtil testSubject = new AccessControlUtil(mockConfiguration);
+
+        when(mockConfiguration.lookupInt(AccessControlUtil.SSO_COOKIE_LIFETIME_SECONDS_KEY,
+                                         AccessControlUtil.DEFAULT_COOKIE_LIFETIME_SECONDS)).thenReturn(60);
+
+        assertEquals("Wrong timeout minutes.", 60, testSubject.getCookieLifetimeSeconds());
+
+        verify(mockConfiguration, times(1)).lookupInt(AccessControlUtil.SSO_COOKIE_LIFETIME_SECONDS_KEY,
+                                                      AccessControlUtil.DEFAULT_COOKIE_LIFETIME_SECONDS);
     }
 }
