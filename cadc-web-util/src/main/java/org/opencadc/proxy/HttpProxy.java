@@ -113,12 +113,17 @@ public class HttpProxy extends HttpTransfer {
         download.setRequestProperties(this.requestProperties);
         download.run();
 
+        final long contentLength = download.getContentLength();
         this.failure = download.getThrowable();
 
         try {
             response.setStatus(download.getResponseCode());
             response.setContentType(download.getContentType());
-            response.setContentLength(new Long(download.getContentLength()).intValue());
+
+            if (contentLength > 0L) {
+                response.setContentLength(Long.valueOf(contentLength).intValue());
+            }
+
             response.getOutputStream().write(outputStream.toByteArray());
         } catch (IOException e) {
             this.failure = e;
