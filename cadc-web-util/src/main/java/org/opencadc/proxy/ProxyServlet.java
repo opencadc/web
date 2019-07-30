@@ -379,8 +379,7 @@ public class ProxyServlet extends HttpServlet {
      * @see ServletResponse#setContentType
      */
     @Override
-    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
-            throws IOException {
+    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
         final URL serviceURL = lookupServiceURL(req.getParameterMap());
         final HttpProxy proxy = getHttpProxy(serviceURL, resp);
 
