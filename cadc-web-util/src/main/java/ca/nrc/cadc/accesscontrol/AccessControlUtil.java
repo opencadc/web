@@ -11,7 +11,6 @@ import org.apache.log4j.Logger;
 
 public class AccessControlUtil {
 
-
     private static final Logger LOG = Logger.getLogger(AccessControlUtil.class);
     public static final String SSO_COOKIE_NAME = "CADC_SSO";
     static final String SSO_SERVERS_KEY = "SSO_SERVERS";
@@ -43,6 +42,7 @@ public class AccessControlUtil {
         this(DEFAULT_AC_PROPERTIES_FILE_PATH);
     }
 
+
     private Set<String> addServers(String hostsString) {
         final Set<String> servers = new HashSet<>();
 
@@ -69,9 +69,16 @@ public class AccessControlUtil {
             return addServers(hostsString);
     }
 
-
     public int getCookieLifetimeSeconds() {
         return applicationConfiguration.lookupInt(AccessControlUtil.SSO_COOKIE_LIFETIME_SECONDS_KEY,
                                                   AccessControlUtil.DEFAULT_COOKIE_LIFETIME_SECONDS);
     }
 }
+
+
+    
+
+
+
+
+
