@@ -74,11 +74,3 @@ public class AccessControlUtil {
                                                   AccessControlUtil.DEFAULT_COOKIE_LIFETIME_SECONDS);
     }
 }
-
-
-    
-
-
-
-
-
