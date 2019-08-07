@@ -14,6 +14,7 @@ public class AccessControlUtil {
     private static final Logger LOG = Logger.getLogger(AccessControlUtil.class);
     public static final String SSO_COOKIE_NAME = "CADC_SSO";
     static final String SSO_SERVERS_KEY = "SSO_SERVERS";
+    static final String COOKIE_DOMAINS_KEY = "COOKIE_DOMAINS";
     public static final String SSO_COOKIE_LIFETIME_SECONDS_KEY = "SSO_TOKEN_LIFETIME_SECONDS";
     public static final String DEFAULT_AC_PROPERTIES_FILE_PATH =
             System.getProperty("user.home") + "/config/AccessControl.properties";
@@ -42,9 +43,8 @@ public class AccessControlUtil {
     }
 
 
-    public Set<String> getSSOServers() {
+    private Set<String> addServers(String hostsString) {
         final Set<String> servers = new HashSet<>();
-        final String hostsString = applicationConfiguration.lookup(SSO_SERVERS_KEY);
 
         if (StringUtil.hasText(hostsString)) {
             final String[] hosts = hostsString.split(" ");
@@ -57,6 +57,16 @@ public class AccessControlUtil {
         }
 
         return servers;
+    }
+
+    public Set<String> getCookieDomains() {
+        final String hostsString = applicationConfiguration.lookup(COOKIE_DOMAINS_KEY);
+        return addServers(hostsString);
+    }
+
+    public Set<String> getSSOServers() {
+        final String hostsString = applicationConfiguration.lookup(SSO_SERVERS_KEY);
+        return addServers(hostsString);
     }
 
     public int getCookieLifetimeSeconds() {
