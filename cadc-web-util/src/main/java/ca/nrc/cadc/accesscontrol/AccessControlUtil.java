@@ -66,7 +66,7 @@ public class AccessControlUtil {
 
     public Set<String> getSSOServers() {
         final String hostsString = applicationConfiguration.lookup(SSO_SERVERS_KEY);
-            return addServers(hostsString);
+        return addServers(hostsString);
     }
 
     public int getCookieLifetimeSeconds() {
@@ -74,11 +74,3 @@ public class AccessControlUtil {
                                                   AccessControlUtil.DEFAULT_COOKIE_LIFETIME_SECONDS);
     }
 }
-
-
-    
-
-
-
-
-
