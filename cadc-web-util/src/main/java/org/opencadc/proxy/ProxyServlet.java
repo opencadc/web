@@ -72,6 +72,7 @@ package org.opencadc.proxy;
 import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.net.FileContent;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.HttpTransfer;
 import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.StringUtil;
@@ -267,7 +268,7 @@ public class ProxyServlet extends HttpServlet {
         final URL redirectURL = post.getRedirectURL();
 
         if (redirectURL == null) {
-            resp.setContentType(post.getResponseContentType());
+            resp.setContentType(post.getContentType());
             resp.setStatus(post.getResponseCode());
         } else {
             final HttpProxy proxyRedirect = getHttpProxy(redirectURL, resp);
@@ -318,7 +319,7 @@ public class ProxyServlet extends HttpServlet {
         final HttpUpload put = getHttpUpload(serviceURL, req.getInputStream());
 
         put.setRequestProperty("Accept", req.getHeader("Accept"));
-        put.setContentType(req.getContentType());
+        put.setRequestProperty(HttpTransfer.CONTENT_TYPE, req.getContentType());
         put.run();
 
         resp.setStatus(put.getResponseCode());
