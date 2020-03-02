@@ -4,7 +4,7 @@
  *******************  CANADIAN ASTRONOMY DATA CENTRE  *******************
  **************  CENTRE CANADIEN DE DONNÉES ASTRONOMIQUES  **************
  *
- *  (c) 2019.                            (c) 2019.
+ *  (c) 2020.                            (c) 2020.
  *  Government of Canada                 Gouvernement du Canada
  *  National Research Council            Conseil national de recherches
  *  Ottawa, Canada, K1A 0R6              Ottawa, Canada, K1A 0R6
@@ -69,13 +69,21 @@
 
 package org.opencadc.proxy;
 
+import ca.nrc.cadc.auth.NotAuthenticatedException;
+import ca.nrc.cadc.io.ByteLimitExceededException;
+import ca.nrc.cadc.net.ExpectationFailedException;
 import ca.nrc.cadc.net.HttpDownload;
 import ca.nrc.cadc.net.HttpTransfer;
 
+import ca.nrc.cadc.net.PreconditionFailedException;
+import ca.nrc.cadc.net.ResourceAlreadyExistsException;
+import ca.nrc.cadc.net.ResourceNotFoundException;
+import ca.nrc.cadc.net.TransientException;
 import javax.servlet.http.HttpServletResponse;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
+import java.security.AccessControlException;
 
 
 public class HttpProxy extends HttpTransfer {
@@ -83,11 +91,20 @@ public class HttpProxy extends HttpTransfer {
     private final HttpServletResponse response;
 
     public HttpProxy(final URL url, final HttpServletResponse response) {
-        super(true);
-        this.remoteURL = url;
+        super(url, true);
         this.response = response;
     }
 
+    @Override
+    public void prepare() 
+            throws AccessControlException, NotAuthenticatedException, 
+            ByteLimitExceededException, ExpectationFailedException, IllegalArgumentException, 
+            PreconditionFailedException, ResourceAlreadyExistsException, ResourceNotFoundException, 
+            TransientException, IOException, InterruptedException {
+        throw new UnsupportedOperationException();
+    }
+
+    
     /**
      * When an object implementing interface <code>Runnable</code> is used
      * to create a thread, starting the thread causes the object's
@@ -110,7 +127,7 @@ public class HttpProxy extends HttpTransfer {
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final HttpDownload download = new HttpDownload(this.remoteURL, outputStream);
         download.setFollowRedirects(this.followRedirects);
-        download.setRequestProperties(this.requestProperties);
+        download.setRequestProperties(super.getRequestProperties());
         download.run();
 
         final long contentLength = download.getContentLength();
