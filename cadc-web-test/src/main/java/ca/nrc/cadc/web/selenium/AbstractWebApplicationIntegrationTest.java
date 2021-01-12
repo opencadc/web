@@ -130,7 +130,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
     protected static WebDriver driver;
     protected static String username;
     protected static String password;
-
+    protected static String testDirectory;
 
     @Rule
     public TestWatcher screenshotWatcher = new TestWatcher() {
@@ -176,6 +176,7 @@ public abstract class AbstractWebApplicationIntegrationTest {
             username = System.getProperty("user.name");
             password = System.getProperty("user.password");
             webURL = System.getProperty("web.app.url");
+            testDirectory = System.getProperty("test.directory");
         } catch (MalformedURLException e) {
             System.err.println("Can't create URL.");
             e.printStackTrace(System.err);
