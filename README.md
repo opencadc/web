@@ -1,2 +1,2 @@
 # web
-client components for the web (html5 and javascript)
+Client components for the web (html5 and javascript)
