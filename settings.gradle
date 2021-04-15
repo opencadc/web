@@ -1,2 +1,2 @@
 rootProject.name = 'opencadc-web'
-include 'cadc-web-util'
+include 'cadc-web-util', 'cadc-web-test'
