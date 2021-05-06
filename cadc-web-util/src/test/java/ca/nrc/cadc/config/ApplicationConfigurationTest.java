@@ -71,6 +71,7 @@ package ca.nrc.cadc.config;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.After;
@@ -124,6 +125,27 @@ public class ApplicationConfigurationTest
         final ApplicationConfiguration testSubject = new ApplicationConfiguration(tmpConfigFile.getPath());
 
         assertEquals("Wrong value.", "VAL11", testSubject.lookup("PROP1"));
+    }
+
+    @Test
+    public void pullFilePropertyList() throws Exception
+    {
+        final File tmpConfigFile = File.createTempFile("config-", ".properties");
+        final FileOutputStream fos = new FileOutputStream(tmpConfigFile);
+
+        fos.write("PROP2=VAL2\n".getBytes("UTF-8"));
+
+        // Use same key twice
+        fos.write("PROP1=VAL11\n".getBytes("UTF-8"));
+        fos.write("PROP1=VAL12".getBytes("UTF-8"));
+
+        fos.flush();
+        fos.close();
+
+        final ApplicationConfiguration testSubject = new ApplicationConfiguration(tmpConfigFile.getPath());
+        List<String> aList = Arrays.asList(testSubject.lookupAll("PROP1"));
+
+        assertEquals("Wrong number of keys found.", 2, aList.size());
     }
 
     @Test
