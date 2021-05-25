@@ -68,6 +68,10 @@ public class ApplicationConfiguration {
         return configuration.getString(key, defaultValue);
     }
 
+    public String[] lookupAll(String key) {
+        return configuration.getStringArray(key);
+    }
+
     @SuppressWarnings("unchecked")
     public <T> T lookup(String key) {
         return (T) configuration.getProperty(key);
