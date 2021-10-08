@@ -4,6 +4,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
@@ -70,7 +71,7 @@ public class AccessControlClient {
             }
 
             case 400: {
-                throw new AccessControlException(out.toString());
+                throw new IllegalArgumentException(out.toString());
             }
 
             case 401: {
@@ -156,14 +157,14 @@ public class AccessControlClient {
                             logStr.append(msg);
                             logStr.append(reasonPart.toString());
                             log.error(logStr.toString());
-                            throw new IllegalArgumentException(throwStr.toString());
+                            throw new ResourceNotFoundException(throwStr.toString());
                         }
                         case -1: {
                             throwStr.append(": Bad request");
                             logStr.append(": Call not completed");
                             logStr.append(reasonPart.toString());
                             log.error(logStr.toString());
-                            throw new IllegalArgumentException(throwStr.toString());
+                            throw new IllegalStateException(throwStr.toString());
                         }
                         case 500: {
                             msg = ": Server error";
@@ -171,7 +172,7 @@ public class AccessControlClient {
                             logStr.append(msg);
                             logStr.append(reasonPart.toString());
                             log.error(logStr.toString());
-                            throw new IllegalArgumentException(throwStr.toString());
+                            throw new IllegalStateException(throwStr.toString());
                         }
                         default: {
                             msg = ": Unknown error";
@@ -179,7 +180,7 @@ public class AccessControlClient {
                             logStr.append(msg);
                             logStr.append(reasonPart.toString());
                             log.error(logStr.toString());
-                            throw new IllegalArgumentException(throwStr.toString());
+                            throw new IllegalStateException(throwStr.toString());
                         }
                     }
 
