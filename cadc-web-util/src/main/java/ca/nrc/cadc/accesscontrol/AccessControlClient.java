@@ -4,6 +4,7 @@ import ca.nrc.cadc.auth.AuthMethod;
 import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.HttpPrincipal;
 import ca.nrc.cadc.net.HttpPost;
+import ca.nrc.cadc.net.ResourceNotFoundException;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.RegistryClient;
 
@@ -12,11 +13,16 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URL;
 import java.security.AccessControlException;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import javax.security.auth.Subject;
+
+import org.apache.log4j.Logger;
+
 
 
 /**
@@ -27,7 +33,7 @@ public class AccessControlClient {
     private static final String CADC_PASSWORD_FIELD = "password";
     private final RegistryClient registryClient;
     private final URI groupManagementServiceURI;
-
+    private static final Logger log = Logger.getLogger(AccessControlClient.class);
 
     public AccessControlClient(final URI serviceURI)
         throws IllegalArgumentException {
@@ -64,6 +70,10 @@ public class AccessControlClient {
                 return out.toString();
             }
 
+            case 400: {
+                throw new IllegalArgumentException(out.toString());
+            }
+
             case 401: {
                 throw new AccessControlException("Login denied");
             }
@@ -95,22 +105,106 @@ public class AccessControlClient {
         final Map<String, String> headers = new HashMap<>();
         headers.put(CADC_TOKEN_HEADER_KEY, new String(token));
 
-        final int statusCode = post(lookupPasswordResetURL(), payload, headers, out);
-        switch (statusCode) {
-            case 200: {
-                break;
-            }
+        Subject subject = AuthenticationUtil.getAnonSubject();
 
-            case 403:
-            case 401: {
-                throw new AccessControlException("Login denied");
-            }
+        try {
 
-            default: {
-                throw new IllegalArgumentException(
-                    String.format("Unable to reset password.\nServer error code: %d.", statusCode));
+            Subject.doAs(subject, new PrivilegedExceptionAction<Void>() {
+
+                @Override
+                public Void run() throws Exception {
+                    final HttpPost thePost = postNoRedirect(lookupPasswordResetURL(), payload, headers);
+                    int statusCode = thePost.getResponseCode();
+                    StringBuilder logStr = new StringBuilder();
+                    logStr.append("Unable to reset password");
+                    StringBuilder throwStr = new StringBuilder();
+                    throwStr.append("Unable to reset password");
+
+                    // Gets added after specific message
+                    StringBuilder reasonPart = new StringBuilder();
+                    if (statusCode != 200) {
+                        reasonPart.append(" - ");
+                        reasonPart.append(thePost.getResponseCode());
+                        reasonPart.append(": ");
+                        reasonPart.append(thePost.getThrowable().toString());
+                    }
+                    String msg = "";
+
+                    switch (statusCode) {
+                        case 200: {
+                            break;
+                        }
+                        case 400: {
+                            throwStr.append(": ");
+                            throwStr.append(thePost.getThrowable().getMessage());
+                            logStr.append(msg);
+                            logStr.append(reasonPart.toString());
+                            log.error(logStr.toString());
+                            throw new IllegalArgumentException(throwStr.toString());
+                        }
+                        case 403:
+                        case 401: {
+                            msg = ": Login denied";
+                            throwStr.append(msg);
+                            logStr.append(msg);
+                            logStr.append(reasonPart.toString());
+                            log.error(logStr.toString());
+                            throw new AccessControlException(throwStr.toString());
+                        }
+                        case 404: {
+                            msg = ": Service unavailable";
+                            throwStr.append(msg);
+                            logStr.append(msg);
+                            logStr.append(reasonPart.toString());
+                            log.error(logStr.toString());
+                            throw new ResourceNotFoundException(throwStr.toString());
+                        }
+                        case -1: {
+                            throwStr.append(": Bad request");
+                            logStr.append(": Call not completed");
+                            logStr.append(reasonPart.toString());
+                            log.error(logStr.toString());
+                            throw new IllegalStateException(throwStr.toString());
+                        }
+                        case 500: {
+                            msg = ": Server error";
+                            throwStr.append(msg);
+                            logStr.append(msg);
+                            logStr.append(reasonPart.toString());
+                            log.error(logStr.toString());
+                            throw new IllegalStateException(throwStr.toString());
+                        }
+                        default: {
+                            msg = ": Unknown error";
+                            throwStr.append(msg);
+                            logStr.append(msg);
+                            logStr.append(reasonPart.toString());
+                            log.error(logStr.toString());
+                            throw new IllegalStateException(throwStr.toString());
+                        }
+                    }
+
+                    return null;
+                }
+            });
+        } catch (PrivilegedActionException pea) {
+            final Exception cause = pea.getException();
+
+            // This is to make sure the right errors are propagated out
+            if (cause == null) {
+                log.error("Bug: Unknown error.", cause);
+            }
+            else if (cause instanceof AccessControlException) {
+                throw ((AccessControlException) cause);
+            }
+            else if (cause instanceof IllegalArgumentException) {
+                throw ((IllegalArgumentException) cause);
+            }
+            else {
+                throw new RuntimeException(cause);
             }
         }
+
     }
 
     /**
@@ -144,6 +238,23 @@ public class AccessControlClient {
 
         post.run();
         return post.getResponseCode();
+    }
+
+    /**
+     * POST to the provided URL, do not follow redirects
+     * @param url
+     * @param payload
+     * @param headers
+     * @return
+     */
+    HttpPost postNoRedirect(final URL url, final Map<String, Object> payload, final Map<String, String> headers) {
+        final HttpPost post = new HttpPost(url, payload, false);
+        for (final Map.Entry<String, String> entry : headers.entrySet()) {
+            post.setRequestProperty(entry.getKey(), entry.getValue());
+        }
+
+        post.run();
+        return post;
     }
 
     public String getCurrentHttpPrincipalUsername(Subject subject) {
