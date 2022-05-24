@@ -70,20 +70,16 @@
 package org.opencadc.proxy;
 
 import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.io.ByteLimitExceededException;
 import ca.nrc.cadc.net.ExpectationFailedException;
-import ca.nrc.cadc.net.HttpDownload;
+import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.net.HttpTransfer;
-
 import ca.nrc.cadc.net.PreconditionFailedException;
-import ca.nrc.cadc.net.ResourceAlreadyExistsException;
-import ca.nrc.cadc.net.ResourceNotFoundException;
-import ca.nrc.cadc.net.TransientException;
-import javax.servlet.http.HttpServletResponse;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.security.AccessControlException;
+import javax.servlet.http.HttpServletResponse;
 
 
 public class HttpProxy extends HttpTransfer {
@@ -96,22 +92,19 @@ public class HttpProxy extends HttpTransfer {
     }
 
     @Override
-    public void prepare() 
-            throws AccessControlException, NotAuthenticatedException, 
-            ByteLimitExceededException, ExpectationFailedException, IllegalArgumentException, 
-            PreconditionFailedException, ResourceAlreadyExistsException, ResourceNotFoundException, 
-            TransientException, IOException, InterruptedException {
+    public void prepare() throws AccessControlException, NotAuthenticatedException, ExpectationFailedException,
+                                 IllegalArgumentException, PreconditionFailedException {
         throw new UnsupportedOperationException();
     }
 
-    
+
     /**
      * When an object implementing interface <code>Runnable</code> is used
      * to create a thread, starting the thread causes the object's
      * <code>run</code> method to be called in that separately executing
      * thread.
-     * <p>
-     * The general contract of the method <code>run</code> is that it may
+     *
+     * <p>The general contract of the method <code>run</code> is that it may
      * take any action whatsoever.
      *
      * @see Thread#run()
@@ -125,17 +118,17 @@ public class HttpProxy extends HttpTransfer {
         // jenkinsd 2019.04.04
         //
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        final HttpDownload download = new HttpDownload(this.remoteURL, outputStream);
-        download.setFollowRedirects(this.followRedirects);
-        download.setRequestProperties(super.getRequestProperties());
-        download.run();
+        final HttpGet getRequest = new HttpGet(this.remoteURL, outputStream);
+        getRequest.setFollowRedirects(this.followRedirects);
+        getRequest.setRequestProperties(super.getRequestProperties());
+        getRequest.run();
 
-        final long contentLength = download.getContentLength();
-        this.failure = download.getThrowable();
+        final long contentLength = getRequest.getContentLength();
+        this.failure = getRequest.getThrowable();
 
         try {
-            response.setStatus(download.getResponseCode());
-            response.setContentType(download.getContentType());
+            response.setStatus(getRequest.getResponseCode());
+            response.setContentType(getRequest.getContentType());
 
             if (contentLength > 0L) {
                 response.setContentLength(Long.valueOf(contentLength).intValue());

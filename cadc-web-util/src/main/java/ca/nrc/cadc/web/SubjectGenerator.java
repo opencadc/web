@@ -75,10 +75,10 @@ import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.SSOCookieCredential;
 import ca.nrc.cadc.net.NetUtil;
 
-import javax.security.auth.Subject;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import javax.security.auth.Subject;
 
 
 public class SubjectGenerator {

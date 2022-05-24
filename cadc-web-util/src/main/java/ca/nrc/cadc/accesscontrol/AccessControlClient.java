@@ -90,7 +90,8 @@ public class AccessControlClient {
     /**
      * Reset the password for the currently authenticated user.
      *
-     * @param newPassword The new password value.
+     * @param newPassword   The new password value.
+     * @param token         The secure pre-authorized token.
      */
     public void resetPassword(final char[] newPassword, final char[] token) {
         final Map<String, Object> payload = new HashMap<>();
@@ -234,10 +235,10 @@ public class AccessControlClient {
     /**
      * POST to the provided URL, do not follow redirects
      *
-     * @param url
-     * @param payload
-     * @param headers
-     * @return
+     * @param url       The URL to rePOST to.
+     * @param payload   The payload of the request.
+     * @param headers   Any headers to be set.
+     * @return          The HttpPost object AFTER the POST is executed.  Never null.
      */
     HttpPost postNoRedirect(final URL url, final Map<String, Object> payload, final Map<String, String> headers) {
         final HttpPost post = new HttpPost(url, payload, false);
