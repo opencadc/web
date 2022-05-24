@@ -12,7 +12,7 @@ repositories {
 
 sourceCompatibility = 1.8
 group = 'org.opencadc'
-version = '1.2.12'
+version = '1.2.13'
 
 description = 'OpenCADC Web UI utility library'
 def git_url = 'https://github.com/opencadc/web'
@@ -21,7 +21,7 @@ dependencies {
     implementation 'org.apache.commons:commons-configuration2:2.3'
     implementation 'commons-beanutils:commons-beanutils:[1.9.3,)'
 
-    implementation 'org.opencadc:cadc-util:[1.6,)'
+    implementation 'org.opencadc:cadc-util:[1.6,2.0)'
     implementation 'org.opencadc:cadc-registry:[1.5.2,)'
     implementation 'org.opencadc:cadc-access-control-identity:[1.1.0,)'
 

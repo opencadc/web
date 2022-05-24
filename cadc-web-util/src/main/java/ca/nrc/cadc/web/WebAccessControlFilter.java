@@ -68,6 +68,7 @@
 
 package ca.nrc.cadc.web;
 
+import ca.nrc.cadc.auth.AuthenticationUtil;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 
@@ -135,22 +136,17 @@ public class WebAccessControlFilter implements Filter {
      * @param chain         The chain to continue on to.
      */
     @Override
-    public void doFilter(final ServletRequest request,
-                         final ServletResponse response,
-                         final FilterChain chain)
-        throws IOException, ServletException {
+    public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain)
+            throws IOException, ServletException {
         final SubjectGenerator subjectGenerator = new SubjectGenerator();
         final PrincipalExtractor principalExtractor =
             new ServletPrincipalExtractor((HttpServletRequest) request);
         final Subject subject = subjectGenerator.generate(principalExtractor);
 
         try {
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
-                @Override
-                public Object run() throws Exception {
-                    chain.doFilter(request, response);
-                    return null;
-                }
+            Subject.doAs(subject, (PrivilegedExceptionAction<Object>) () -> {
+                chain.doFilter(request, response);
+                return null;
             });
         } catch (Exception e) {
             throw new ServletException(e);

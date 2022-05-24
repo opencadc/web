@@ -100,26 +100,23 @@ public class SubjectGenerator {
      *
      * @param principalExtractor The Principal Extractor to use.
      * @return Subject instance.  Never null.
-     *
      * @throws IOException If the domain cannot be extracted from
      *                     the server name.
      */
     public final Subject generate(final PrincipalExtractor principalExtractor)
             throws IOException {
-        final Subject subject =
-                AuthenticationUtil.getSubject(principalExtractor);
-        final Set<SSOCookieCredential> cookieCredentials =
-                subject.getPublicCredentials(SSOCookieCredential.class);
-        final SSOCookieCredential cookieCredential =
-                cookieCredentials.isEmpty() ? null : cookieCredentials.toArray(new SSOCookieCredential[0])[0];
+        final Subject subject = AuthenticationUtil.getSubject(principalExtractor);
+        final Set<SSOCookieCredential> cookieCredentials = subject.getPublicCredentials(SSOCookieCredential.class);
+        final SSOCookieCredential cookieCredential = cookieCredentials.isEmpty()
+                                                     ? null
+                                                     : cookieCredentials.toArray(new SSOCookieCredential[0])[0];
 
         if (cookieCredential != null) {
             final Set<Object> publicCred = new HashSet<>();
 
             for (final String serverName : accessControlUtil.getSSOServers()) {
-                publicCred.add(new SSOCookieCredential(
-                        cookieCredential.getSsoCookieValue(),
-                        NetUtil.getDomainName(serverName)));
+                publicCred.add(new SSOCookieCredential(cookieCredential.getSsoCookieValue(),
+                                                       NetUtil.getDomainName(serverName)));
                 publicCred.add(AuthMethod.COOKIE);
             }
 
