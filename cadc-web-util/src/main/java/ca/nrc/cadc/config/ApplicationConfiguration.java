@@ -1,23 +1,17 @@
 package ca.nrc.cadc.config;
 
-
 import ca.nrc.cadc.util.StringUtil;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.configuration2.CombinedConfiguration;
 import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.SystemConfiguration;
-import org.apache.commons.configuration2.XMLConfiguration;
 import org.apache.commons.configuration2.builder.FileBasedConfigurationBuilder;
 import org.apache.commons.configuration2.builder.fluent.Parameters;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.commons.configuration2.tree.MergeCombiner;
-import org.apache.commons.configuration2.tree.NodeCombiner;
-import org.apache.commons.configuration2.tree.UnionCombiner;
 import org.apache.log4j.Logger;
 
 
@@ -32,11 +26,12 @@ public class ApplicationConfiguration {
         combinedConfiguration.addConfiguration(new SystemConfiguration());
 
         final Parameters parameters = new Parameters();
-        final FileBasedConfigurationBuilder builder = new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(parameters.properties()
-            .setFileName(filePath));
+        final FileBasedConfigurationBuilder<PropertiesConfiguration> builder =
+                new FileBasedConfigurationBuilder<>(PropertiesConfiguration.class).configure(
+                        parameters.properties().setFileName(filePath));
 
         try {
-            combinedConfiguration.addConfiguration((Configuration) builder.getConfiguration());
+            combinedConfiguration.addConfiguration(builder.getConfiguration());
         } catch (ConfigurationException var5) {
             LOGGER.warn(String.format("No configuration found at %s.\nUsing defaults.", filePath));
         }
@@ -68,12 +63,13 @@ public class ApplicationConfiguration {
         return configuration.getString(key, defaultValue);
     }
 
-    public String[] lookupAll(String key) {
-        return configuration.getStringArray(key);
-    }
-
     @SuppressWarnings("unchecked")
     public <T> T lookup(String key) {
         return (T) configuration.getProperty(key);
+    }
+
+
+    public String[] lookupAll(String key) {
+        return configuration.getStringArray(key);
     }
 }

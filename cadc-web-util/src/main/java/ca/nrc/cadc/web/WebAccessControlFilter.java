@@ -71,31 +71,33 @@ package ca.nrc.cadc.web;
 import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.ServletPrincipalExtractor;
 
-import javax.security.auth.Subject;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
+import javax.security.auth.Subject;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
 
 
 public class WebAccessControlFilter implements Filter {
     /**
-     * Called by the web container to indicate to a filter that it is
-     * being placed into service.
+     * Called by the web container to indicate to a filter that it is being placed into service.
      *
-     * <p>The servlet container calls the init
-     * method exactly once after instantiating the filter. The init
+     * <p>The servlet container calls the init method exactly once after instantiating the filter. The init
      * method must complete successfully before the filter is asked to do any
-     * filtering work.
+     * filtering work.</p>
      *
-     * <p>The web container cannot place the filter into service if the init
-     * method either
+     * <p>The web container cannot place the filter into service if the init method either</p>
      * <ol>
-     * <li>Throws a ServletException
-     * <li>Does not return within a time period defined by the web container
+     *     <li>Throws a ServletException
+     *     <li>Does not return within a time period defined by the web container
      * </ol>
      *
-     * @param filterConfig      Config for filters.  Empty here.
+     * @param filterConfig Config for filters.  Empty here.
      */
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -109,8 +111,7 @@ public class WebAccessControlFilter implements Filter {
      * The FilterChain passed in to this method allows the Filter to pass
      * on the request and response to the next entity in the chain.
      *
-     * <p>A typical implementation of this method would follow the following
-     * pattern:
+     * <p>A typical implementation of this method would follow the following pattern:</p>
      * <ol>
      * <li>Examine the request
      * <li>Optionally wrap the request object with a custom implementation to
@@ -130,27 +131,21 @@ public class WebAccessControlFilter implements Filter {
      * next entity in the filter chain.
      * </ol>
      *
-     * @param request       Incoming ServletRequest.
-     * @param response      ServletResponse to write to.
-     * @param chain         The chain to continue on to.
+     * @param request  Incoming ServletRequest.
+     * @param response ServletResponse to write to.
+     * @param chain    The chain to continue on to.
      */
     @Override
-    public void doFilter(final ServletRequest request,
-                         final ServletResponse response,
-                         final FilterChain chain)
-        throws IOException, ServletException {
+    public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain)
+            throws IOException, ServletException {
         final SubjectGenerator subjectGenerator = new SubjectGenerator();
-        final PrincipalExtractor principalExtractor =
-            new ServletPrincipalExtractor((HttpServletRequest) request);
+        final PrincipalExtractor principalExtractor = new ServletPrincipalExtractor((HttpServletRequest) request);
         final Subject subject = subjectGenerator.generate(principalExtractor);
 
         try {
-            Subject.doAs(subject, new PrivilegedExceptionAction<Object>() {
-                @Override
-                public Object run() throws Exception {
-                    chain.doFilter(request, response);
-                    return null;
-                }
+            Subject.doAs(subject, (PrivilegedExceptionAction<Object>) () -> {
+                chain.doFilter(request, response);
+                return null;
             });
         } catch (Exception e) {
             throw new ServletException(e);

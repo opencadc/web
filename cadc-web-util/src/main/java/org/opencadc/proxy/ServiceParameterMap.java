@@ -75,7 +75,7 @@ import java.net.URI;
 import java.util.HashMap;
 
 /**
- * ServiceParamter name values are mandatory, and cannot be null.
+ * ServiceParameter name values are mandatory, and cannot be null.
  */
 public class ServiceParameterMap extends HashMap<ServiceParameterName, String> {
     public final URI getURI(final ServiceParameterName serviceParameterNameKey) {
@@ -89,10 +89,8 @@ public class ServiceParameterMap extends HashMap<ServiceParameterName, String> {
      *
      * @param key   key with which the specified value is to be associated
      * @param value value to be associated with the specified key
-     * @return the previous value associated with <tt>key</tt>, or
-     * <tt>null</tt> if there was no mapping for <tt>key</tt>.
-     * (A <tt>null</tt> return can also indicate that the map
-     * previously associated <tt>null</tt> with <tt>key</tt>.)
+     * @return the previous value associated with key, or null if there was no mapping for key.
+     *     (A null return can also indicate that the map previously associated null with key.)
      */
     @Override
     public String put(final ServiceParameterName key, final String value) {
@@ -122,10 +120,10 @@ public class ServiceParameterMap extends HashMap<ServiceParameterName, String> {
     /**
      * Returns a string representation of this map.  The string representation
      * consists of a list of key-value mappings in the order returned by the
-     * map's <tt>entrySet</tt> view's iterator, enclosed in braces
-     * (<tt>"{}"</tt>).  Adjacent mappings are separated by the characters
-     * <tt>", "</tt> (comma and space).  Each key-value mapping is rendered as
-     * the key followed by an equals sign (<tt>"="</tt>) followed by the
+     * map's entrySet view's iterator, enclosed in braces
+     * ("{}").  Adjacent mappings are separated by the characters
+     * ", " (comma and space).  Each key-value mapping is rendered as
+     * the key followed by an equals sign ("=") followed by the
      * associated value.  Keys and values are converted to strings as by
      * {@link String#valueOf(Object)}.
      *

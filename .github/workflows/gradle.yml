@@ -12,6 +12,6 @@ jobs:
       with:
         java-version: 1.8
     - name: Build cadc-web-util with Gradle
-      run: cd cadc-web-util && ../gradlew -i clean build test
+      run: cd cadc-web-util && ../gradlew -i clean build test javadoc checkstyleMain
     - name: Build cadc-web-test with Gradle
       run: cd cadc-web-test && ../gradlew -i clean build test

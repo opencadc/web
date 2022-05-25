@@ -75,10 +75,10 @@ import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.SSOCookieCredential;
 import ca.nrc.cadc.net.NetUtil;
 
-import javax.security.auth.Subject;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
+import javax.security.auth.Subject;
 
 
 public class SubjectGenerator {
@@ -100,26 +100,23 @@ public class SubjectGenerator {
      *
      * @param principalExtractor The Principal Extractor to use.
      * @return Subject instance.  Never null.
-     *
      * @throws IOException If the domain cannot be extracted from
      *                     the server name.
      */
     public final Subject generate(final PrincipalExtractor principalExtractor)
             throws IOException {
-        final Subject subject =
-                AuthenticationUtil.getSubject(principalExtractor);
-        final Set<SSOCookieCredential> cookieCredentials =
-                subject.getPublicCredentials(SSOCookieCredential.class);
-        final SSOCookieCredential cookieCredential =
-                cookieCredentials.isEmpty() ? null : cookieCredentials.toArray(new SSOCookieCredential[0])[0];
+        final Subject subject = getSubject(principalExtractor);
+        final Set<SSOCookieCredential> cookieCredentials = subject.getPublicCredentials(SSOCookieCredential.class);
+        final SSOCookieCredential cookieCredential = cookieCredentials.isEmpty()
+                                                     ? null
+                                                     : cookieCredentials.toArray(new SSOCookieCredential[0])[0];
 
         if (cookieCredential != null) {
             final Set<Object> publicCred = new HashSet<>();
 
             for (final String serverName : accessControlUtil.getSSOServers()) {
-                publicCred.add(new SSOCookieCredential(
-                        cookieCredential.getSsoCookieValue(),
-                        NetUtil.getDomainName(serverName)));
+                publicCred.add(new SSOCookieCredential(cookieCredential.getSsoCookieValue(),
+                                                       NetUtil.getDomainName(serverName)));
                 publicCred.add(AuthMethod.COOKIE);
             }
 
@@ -127,5 +124,9 @@ public class SubjectGenerator {
         }
 
         return subject;
+    }
+
+    Subject getSubject(final PrincipalExtractor principalExtractor) {
+        return AuthenticationUtil.getSubject(principalExtractor);
     }
 }

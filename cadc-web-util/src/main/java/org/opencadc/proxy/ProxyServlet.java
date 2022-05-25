@@ -77,17 +77,17 @@ import ca.nrc.cadc.net.HttpUpload;
 import ca.nrc.cadc.reg.client.RegistryClient;
 import ca.nrc.cadc.util.StringUtil;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 
 /**
@@ -143,18 +143,16 @@ public class ProxyServlet extends HttpServlet {
     URL lookupServiceURL(final ServiceParameterMap serviceParameters) throws IOException {
         final RegistryClient registryClient = getRegistryClient();
 
-        final URL serviceURL = registryClient.getServiceURL(serviceParameters.getURI(ServiceParameterName.RESOURCE_ID),
-                                                            serviceParameters.getURI(ServiceParameterName.STANDARD_ID),
-                                                            AuthMethod.valueOf(
-                                                                    serviceParameters
-                                                                            .get(ServiceParameterName.AUTH_TYPE)
-                                                                            .toUpperCase()),
-                                                            serviceParameters
-                                                                    .getURI(ServiceParameterName.INTERFACE_TYPE_ID));
+        final URL serviceURL =
+                registryClient.getServiceURL(serviceParameters.getURI(ServiceParameterName.RESOURCE_ID),
+                                             serviceParameters.getURI(ServiceParameterName.STANDARD_ID),
+                                             AuthMethod.valueOf(serviceParameters.get(ServiceParameterName.AUTH_TYPE)
+                                                                                 .toUpperCase()),
+                                             serviceParameters.getURI(ServiceParameterName.INTERFACE_TYPE_ID));
 
         if (serviceURL == null) {
             throw new IllegalArgumentException("No Service URL matching provided parameters:\n\n"
-                                                       + serviceParameters.toString() + "\n\n");
+                                               + serviceParameters + "\n\n");
         } else {
 
             final URL serviceURLWithPath;
@@ -170,7 +168,8 @@ public class ProxyServlet extends HttpServlet {
                 final String extraQuery = serviceParameters.get(ServiceParameterName.EXTRA_QUERY);
                 serviceURLWithQuery = new URL(serviceURLWithPath,
                                               serviceURLWithPath.getPath() + (extraQuery.startsWith("?") ? extraQuery
-                                                      : "?" + extraQuery));
+                                                                                                         : "?"
+                                                                                                           + extraQuery));
             } else {
                 serviceURLWithQuery = serviceURLWithPath;
             }
@@ -208,27 +207,33 @@ public class ProxyServlet extends HttpServlet {
      * data of unlimited length to the Web server a single time
      * and is useful when posting information such as
      * credit card numbers.
+     *
      * <p>When overriding this method, read the request data,
      * write the response headers, get the response's writer or output
      * stream object, and finally, write the response data. It's best
      * to include content type and encoding. When using a
      * <code>PrintWriter</code> object to return the response, set the
      * content type before accessing the <code>PrintWriter</code> object.
+     *
      * <p>The servlet container must write the headers before committing the
      * response, because in HTTP the headers must be sent before the
      * response body.
+     *
      * <p>Where possible, set the Content-Length header (with the
      * {@link ServletResponse#setContentLength} method),
      * to allow the servlet container to use a persistent connection
      * to return its response to the client, improving performance.
      * The content length is automatically set if the entire response fits
      * inside the response buffer.
+     *
      * <p>When using HTTP 1.1 chunked encoding (which means that the response
      * has a Transfer-Encoding header), do not set the Content-Length header.
+     *
      * <p>This method does not need to be either safe or idempotent.
      * Operations requested through POST can have side effects for
      * which the user can be held accountable, for example,
      * updating stored data or buying items online.
+     *
      * <p>If the HTTP POST request is incorrectly formatted,
      * <code>doPost</code> returns an HTTP "Bad Request" message.
      *
@@ -286,6 +291,7 @@ public class ProxyServlet extends HttpServlet {
      * The PUT operation allows a client to
      * place a file on the server and is similar to
      * sending a file by FTP.
+     *
      * <p>When overriding this method, leave intact
      * any content headers sent with the request (including
      * Content-Length, Content-Type, Content-Transfer-Encoding,
@@ -295,11 +301,13 @@ public class ProxyServlet extends HttpServlet {
      * (HTTP 501 - Not Implemented) and discard the request.
      * For more information on HTTP 1.1, see RFC 2616
      * <a href="http://www.ietf.org/rfc/rfc2616.txt"></a>.
+     *
      * <p>This method does not need to be either safe or idempotent.
      * Operations that <code>doPut</code> performs can have side
      * effects for which the user can be held accountable. When using
      * this method, it may be useful to save a copy of the
      * affected URL in temporary storage.
+     *
      * <p>If the HTTP PUT request is incorrectly formatted,
      * <code>doPut</code> returns an HTTP "Bad Request" message.
      *
@@ -332,10 +340,12 @@ public class ProxyServlet extends HttpServlet {
     /**
      * Called by the server (via the <code>service</code> method) to
      * allow a servlet to handle a GET request.
+     *
      * <p>Overriding this method to support a GET request also
      * automatically supports an HTTP HEAD request. A HEAD
      * request is a GET request that returns no body in the
      * response, only the request header fields.
+     *
      * <p>When overriding this method, read the request data,
      * write the response headers, get the response's writer or
      * output stream object, and finally, write the response data.
@@ -343,28 +353,34 @@ public class ProxyServlet extends HttpServlet {
      * a <code>PrintWriter</code> object to return the response,
      * set the content type before accessing the
      * <code>PrintWriter</code> object.
+     *
      * <p>The servlet container must write the headers before
      * committing the response, because in HTTP the headers must be sent
      * before the response body.
+     *
      * <p>Where possible, set the Content-Length header (with the
      * {@link ServletResponse#setContentLength} method),
      * to allow the servlet container to use a persistent connection
      * to return its response to the client, improving performance.
      * The content length is automatically set if the entire response fits
      * inside the response buffer.
+     *
      * <p>When using HTTP 1.1 chunked encoding (which means that the response
      * has a Transfer-Encoding header), do not set the Content-Length header.
+     *
      * <p>The GET method should be safe, that is, without
      * any side effects for which users are held responsible.
      * For example, most form queries have no side effects.
      * If a client request is intended to change stored data,
      * the request should use some other HTTP method.
+     *
      * <p>The GET method should also be idempotent, meaning
      * that it can be safely repeated. Sometimes making a
      * method safe also makes it idempotent. For example,
      * repeating queries is both safe and idempotent, but
      * buying a product online or modifying data is neither
      * safe nor idempotent.
+     *
      * <p>If the request is incorrectly formatted, <code>doGet</code>
      * returns an HTTP "Bad Request" message.
      *
