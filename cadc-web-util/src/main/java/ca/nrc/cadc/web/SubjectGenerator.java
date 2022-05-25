@@ -105,7 +105,7 @@ public class SubjectGenerator {
      */
     public final Subject generate(final PrincipalExtractor principalExtractor)
             throws IOException {
-        final Subject subject = AuthenticationUtil.getSubject(principalExtractor);
+        final Subject subject = getSubject(principalExtractor);
         final Set<SSOCookieCredential> cookieCredentials = subject.getPublicCredentials(SSOCookieCredential.class);
         final SSOCookieCredential cookieCredential = cookieCredentials.isEmpty()
                                                      ? null
@@ -124,5 +124,9 @@ public class SubjectGenerator {
         }
 
         return subject;
+    }
+
+    Subject getSubject(final PrincipalExtractor principalExtractor) {
+        return AuthenticationUtil.getSubject(principalExtractor);
     }
 }

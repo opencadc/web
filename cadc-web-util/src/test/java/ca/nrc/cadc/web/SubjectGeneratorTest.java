@@ -76,14 +76,18 @@ import ca.nrc.cadc.auth.PrincipalExtractor;
 import ca.nrc.cadc.auth.SSOCookieCredential;
 
 import javax.security.auth.Subject;
+import java.io.IOException;
 import java.security.Principal;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import ca.nrc.cadc.auth.SSOCookieManager;
 import ca.nrc.cadc.net.NetUtil;
+import junit.framework.AssertionFailedError;
 import org.json.Cookie;
 import org.junit.Test;
 
@@ -97,31 +101,51 @@ public class SubjectGeneratorTest {
     public void generate() throws Exception {
         final AccessControlUtil mockAccessControlUtil = mock(AccessControlUtil.class);
         final PrincipalExtractor mockPrincipalExtractor = mock(PrincipalExtractor.class);
-        final SubjectGenerator testSubject = new SubjectGenerator(mockAccessControlUtil);
+        final Subject testUser = new Subject();
+        final String cookieToken = UUID.randomUUID().toString();
+        final Calendar expiryCalendar = Calendar.getInstance();
+        expiryCalendar.add(Calendar.MONTH, 1);
+        final SSOCookieCredential testSSOCookieCredential =
+                new SSOCookieCredential(cookieToken, "example.cadc.ca", expiryCalendar.getTime());
+        testUser.getPublicCredentials().add(testSSOCookieCredential);
+        final SubjectGenerator testSubject = new SubjectGenerator(mockAccessControlUtil) {
+            @Override
+            Subject getSubject(PrincipalExtractor principalExtractor) {
+                return testUser;
+            }
+        };
         final Set<String> domainServers = new HashSet<>();
-
-        final Set<Principal> principals = new HashSet<>();
-        final HttpPrincipal httpPrincipal = new HttpPrincipal("USER");
-
-        principals.add(httpPrincipal);
-        principals.add(new CookiePrincipal("CADC_SSO", new SSOCookieManager().generate(httpPrincipal)));
 
         domainServers.add("mysite.example.com");
         domainServers.add("mysite.anotherplace.com");
         domainServers.add("mysite.onemore.com");
 
         when(mockAccessControlUtil.getSSOServers()).thenReturn(domainServers);
-        when(mockPrincipalExtractor.getPrincipals()).thenReturn(principals);
-        when(mockPrincipalExtractor.getCertificateChain()).thenReturn(null);
+
+        final Set<String> allDomains = new HashSet<>();
+        domainServers.forEach(domain -> {
+            try {
+                allDomains.add(NetUtil.getDomainName(domain));
+            } catch (IOException ioException) {
+                throw new RuntimeException(ioException.getMessage(), ioException);
+            }
+        });
+        allDomains.add(NetUtil.getDomainName(testSSOCookieCredential.getDomain()));
 
         final Subject subject = testSubject.generate(mockPrincipalExtractor);
         final Set<SSOCookieCredential> cookieCredentials = subject.getPublicCredentials(SSOCookieCredential.class);
 
-        // The main two in ac-domains.properties, as well as the three above
-        assertEquals("Wrong cookie count.", 5, cookieCredentials.size());
+        // The main one set, as well as the three above
+        assertEquals("Wrong cookie count.", allDomains.size(), cookieCredentials.size());
+        cookieCredentials.forEach(cookieCredential -> {
+            try {
+                final String cookieCredDomain = NetUtil.getDomainName(cookieCredential.getDomain());
+                assertTrue("Wrong domain (" + cookieCredDomain + ")", allDomains.contains(cookieCredDomain));
+            } catch (IOException ioException) {
+                throw new AssertionFailedError(ioException.getMessage());
+            }
+        });
 
         verify(mockAccessControlUtil, times(1)).getSSOServers();
-        verify(mockPrincipalExtractor, times(1)).getCertificateChain();
-        verify(mockPrincipalExtractor, times(1)).getPrincipals();
     }
 }
