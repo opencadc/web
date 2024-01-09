@@ -25,6 +25,9 @@ group = 'org.opencadc'
 version = '1.1.0'
 sourceCompatibility = '1.8'
 
+description = 'OpenCADC Cookie and OIDC Access Token manager'
+def git_url = 'https://github.com/opencadc/web.git'
+
 // Minimal publishing required to run publishToMavenLocal with Gradle version >= 7
 publishing {
     publications {
