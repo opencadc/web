@@ -22,8 +22,8 @@ repositories {
 }
 
 group = 'org.opencadc'
-version = '1.0.2'
-sourceCompatibility = '11'
+version = '1.1.0'
+sourceCompatibility = '1.8'
 
 // Minimal publishing required to run publishToMavenLocal with Gradle version >= 7
 publishing {
