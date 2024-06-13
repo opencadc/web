@@ -1,4 +1,4 @@
-# OpenCADC Web Token library (1.1.0)
+# OpenCADC Web Token library (1.1.1)
 
 - [Usage](#usage)
 - [OpenID Connect](#openid-connect)
