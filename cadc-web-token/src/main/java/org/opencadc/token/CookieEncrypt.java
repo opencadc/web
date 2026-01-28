@@ -68,11 +68,6 @@
 
 package org.opencadc.token;
 
-import org.apache.commons.lang3.RandomStringUtils;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Key;
@@ -80,12 +75,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.apache.commons.lang3.RandomStringUtils;
 
 class CookieEncrypt {
     private static final String DEFAULT_CIPHER_ALGORITHM = "AES/CBC/PKCS5Padding";
 
     private final String algorithm;
-
 
     public CookieEncrypt() {
         this(CookieEncrypt.DEFAULT_CIPHER_ALGORITHM);
@@ -96,11 +94,11 @@ class CookieEncrypt {
     }
 
     /**
-     * Encrypt the provided string value with the desired SecretKey.  To use the default SecretKey, then use a generated
+     * Encrypt the provided string value with the desired SecretKey. To use the default SecretKey, then use a generated
      * #encrypt(String) method instead.
      *
      * @param value The value to encrypt.
-     * @param secretKey  The SecretKey to use to decipher it later.
+     * @param secretKey The SecretKey to use to decipher it later.
      * @throws GeneralSecurityException For Cipher exceptions.
      */
     EncryptedCookie encrypt(final String value, final Key secretKey) throws GeneralSecurityException {
@@ -132,7 +130,7 @@ class CookieEncrypt {
     }
 
     Key generateAESKey() throws NoSuchAlgorithmException {
-        final String secretKeyString = RandomStringUtils.randomAlphanumeric(16);
+        final String secretKeyString = RandomStringUtils.secure().nextAlphanumeric(16);
 
         // Generate a Secret Key.
         final MessageDigest digest = MessageDigest.getInstance("SHA-256");

@@ -69,11 +69,9 @@
 package org.opencadc.token;
 
 import ca.nrc.cadc.auth.NotAuthenticatedException;
-import ca.nrc.cadc.net.HttpGet;
 import ca.nrc.cadc.reg.Standards;
 import ca.nrc.cadc.reg.client.LocalAuthority;
 import ca.nrc.cadc.util.StringUtil;
-import com.nimbusds.oauth2.sdk.AccessTokenResponse;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.AuthorizationCodeGrant;
 import com.nimbusds.oauth2.sdk.AuthorizationErrorResponse;
@@ -95,33 +93,20 @@ import com.nimbusds.oauth2.sdk.auth.Secret;
 import com.nimbusds.oauth2.sdk.id.ClientID;
 import com.nimbusds.oauth2.sdk.id.State;
 import com.nimbusds.oauth2.sdk.token.RefreshToken;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.log4j.Logger;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringWriter;
-import java.io.Writer;
-import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Objects;
+import org.apache.log4j.Logger;
+import org.json.JSONObject;
 
-
-/**
- * A configured Client necessary to connect to an OpenID Connect Provider from a CADC/CANFAR application.
- */
+/** A configured Client necessary to connect to an OpenID Connect Provider from a CADC/CANFAR application. */
 public class Client {
     private static final Logger LOGGER = Logger.getLogger(Client.class);
 
-    private static final String WELL_KNOWN_ENDPOINT = "/.well-known/openid-configuration";
-    private static final String AUTH_ENDPOINT_KEY = "authorization_endpoint";
-    private static final String TOKEN_ENDPOINT_KEY = "token_endpoint";
-
+    // Cache the Discovery Document for efficiency.
+    private final DiscoveryDocument discoveryDocument;
 
     private final String clientID;
     private final String clientSecret;
@@ -130,40 +115,79 @@ public class Client {
     private final String[] scope;
     private final TokenStore tokenStore;
 
+    /**
+     * Full constructor. Mostly used for testing, but feel free to use an alternate TokenStore implementation.
+     *
+     * @param clientID The ID (Not the name) of the configured Client registered at the provider.
+     * @param clientSecret The secret associated with the Client ID for authorization to the provider.
+     * @param callbackURL Where to send the user after successful login and successful redirect to callback.
+     * @param redirectURL The Callback URL to redirect the user to after successful login.
+     * @param scope The array of Scope values to send.
+     * @param tokenStore The TokenStore cache.
+     */
+    public Client(
+            String clientID,
+            String clientSecret,
+            URL callbackURL,
+            URL redirectURL,
+            String[] scope,
+            TokenStore tokenStore) {
+        this(
+                DiscoveryDocument.fromIssuer(Client.getIssuer()),
+                clientID,
+                clientSecret,
+                callbackURL,
+                redirectURL,
+                scope,
+                tokenStore);
+    }
 
     /**
-     * Full constructor.  Mostly used for testing, but feel free to use an alternate TokenStore implementation.
+     * Public constructor meant for callers.
      *
-     * @param clientID     The ID (Not the name) of the configured Client registered at the provider.
+     * @param clientID The ID (Not the name) of the configured Client registered at the provider.
      * @param clientSecret The secret associated with the Client ID for authorization to the provider.
-     * @param callbackURL  Where to send the user after successful login and successful redirect to callback.
-     * @param redirectURL  The Callback URL to redirect the user to after successful login.
-     * @param scope        The array of Scope values to send.
-     * @param tokenStore   The TokenStore cache.
+     * @param callbackURL Where to send the user after successful login and successful redirect to callback.
+     * @param redirectURL The Callback URL to redirect the user to after successful login.
+     * @param scope The array of Scope values to send.
+     * @param tokenStoreCacheURL The URL to the default cache implementation.
      */
-    public Client(String clientID, String clientSecret, URL callbackURL, URL redirectURL, String[] scope,
-                  TokenStore tokenStore) {
+    public Client(
+            String clientID,
+            String clientSecret,
+            URL callbackURL,
+            URL redirectURL,
+            String[] scope,
+            String tokenStoreCacheURL) {
+        this(clientID, clientSecret, callbackURL, redirectURL, scope, new RedisTokenStore(tokenStoreCacheURL));
+    }
+
+    /**
+     * Full constructor. Mostly used for testing.
+     *
+     * @param discoveryDocument The OIDC Discovery Document.
+     * @param clientID The ID (Not the name) of the configured Client registered at the provider.
+     * @param clientSecret The secret associated with the Client ID for authorization to the provider.
+     * @param callbackURL Where to send the user after successful login and successful redirect to callback.
+     * @param redirectURL The Callback URL to redirect the user to after successful login.
+     * @param scope The array of Scope values to send.
+     * @param tokenStore The Token Store cache implementation.
+     */
+    Client(
+            DiscoveryDocument discoveryDocument,
+            String clientID,
+            String clientSecret,
+            URL callbackURL,
+            URL redirectURL,
+            String[] scope,
+            TokenStore tokenStore) {
+        this.discoveryDocument = discoveryDocument;
         this.clientID = clientID;
         this.clientSecret = clientSecret;
         this.callbackURL = callbackURL;
         this.redirectURL = redirectURL;
         this.scope = scope;
         this.tokenStore = tokenStore;
-    }
-
-    /**
-     * Full (mostly) constructor.
-     *
-     * @param clientID           The ID (Not the name) of the configured Client registered at the provider.
-     * @param clientSecret       The secret associated with the Client ID for authorization to the provider.
-     * @param callbackURL        Where to send the user after successful login and successful redirect to callback.
-     * @param redirectURL        The Callback URL to redirect the user to after successful login.
-     * @param scope              The array of Scope values to send.
-     * @param tokenStoreCacheURL The URL to the default cache implementation.
-     */
-    public Client(String clientID, String clientSecret, URL callbackURL, URL redirectURL, String[] scope,
-                  String tokenStoreCacheURL) {
-        this(clientID, clientSecret, callbackURL, redirectURL, scope, new RedisTokenStore(tokenStoreCacheURL));
     }
 
     /**
@@ -187,7 +211,7 @@ public class Client {
     /**
      * Obtain the login endpoint without the optional State string.
      *
-     * @return URI to redirect the user to.  Never null.
+     * @return URI to redirect the user to. Never null.
      * @throws IOException If any URLs cannot be used.
      */
     public URL getAuthorizationURL() throws IOException {
@@ -198,12 +222,13 @@ public class Client {
      * Obtain the login endpoint, but provide the optional State string to be stored by the caller.
      *
      * @param stateString The state value to check later (optional).
-     * @return URI to redirect the user to.  Never null.
+     * @return URI to redirect the user to. Never null.
      * @throws IOException If any URLs cannot be used.
      */
     public URL getAuthorizationURL(final String stateString) throws IOException {
         // The authorization endpoint of the server
-        final URI authorizationEndpoint = URI.create(Client.getAuthorizationEndpoint().toExternalForm());
+        final URI authorizationEndpoint =
+                URI.create(this.discoveryDocument.getAuthorizationEndpoint().toExternalForm());
 
         // The client identifier provisioned by the server
         final ClientID clientID = new ClientID(this.clientID);
@@ -214,11 +239,11 @@ public class Client {
         // The client callback URI, typically pre-registered with the server
         final URI callback = URI.create(this.redirectURL.toExternalForm());
 
-        final AuthorizationRequest.Builder requestBuilder =
-                new AuthorizationRequest.Builder(new ResponseType(ResponseType.Value.CODE), clientID)
-                        .scope(scope)
-                        .redirectionURI(callback)
-                        .endpointURI(authorizationEndpoint);
+        final AuthorizationRequest.Builder requestBuilder = new AuthorizationRequest.Builder(
+                        new ResponseType(ResponseType.Value.CODE), clientID)
+                .scope(scope)
+                .redirectionURI(callback)
+                .endpointURI(authorizationEndpoint);
 
         if (StringUtil.hasText(stateString)) {
             requestBuilder.state(new State(stateString));
@@ -252,11 +277,11 @@ public class Client {
     }
 
     /**
-     * Obtain an access token from the token endpoint for the current configuration, obtaining necessary elements
-     * from the provided response URI from the authorization endpoint.  This will not use the optional State.
+     * Obtain an access token from the token endpoint for the current configuration, obtaining necessary elements from
+     * the provided response URI from the authorization endpoint. This will not use the optional State.
      *
      * @param responseURI The response URI from the authorization's login.
-     * @return The encrypted Assets key.  Never null.
+     * @return The encrypted Assets key. Never null.
      * @throws IOException If any URLs cannot be used.
      */
     public byte[] setAccessToken(final URI responseURI) throws Exception {
@@ -265,12 +290,12 @@ public class Client {
     }
 
     /**
-     * Obtain an access token from the token endpoint for the current configuration, obtaining necessary elements
-     * from the provided response URI from the authorization endpoint.
+     * Obtain an access token from the token endpoint for the current configuration, obtaining necessary elements from
+     * the provided response URI from the authorization endpoint.
      *
      * @param responseURI The response URI from the authorization's login.
-     * @param state       The optional state value to be used to compare against later.
-     * @return The encrypted Assets key.  Never null.
+     * @param state The optional state value to be used to compare against later.
+     * @return The encrypted Assets key. Never null.
      * @throws IOException If any URLs cannot be used.
      */
     public byte[] setAccessToken(final URI responseURI, final String state) throws Exception {
@@ -283,27 +308,15 @@ public class Client {
         final AuthorizationGrant codeGrant = new AuthorizationCodeGrant(authorizationCode, callback);
 
         // The credentials to authenticate the client at the token endpoint
-        final ClientID clientID = new ClientID(this.clientID);
-        final Secret clientSecret = new Secret(this.clientSecret);
-        final ClientAuthentication clientAuth = new ClientSecretBasic(clientID, clientSecret);
-        final URI tokenEndpoint = URI.create(Client.getTokenEndpoint().toExternalForm());
-        final TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, codeGrant);
-        final TokenResponse tokenResponse;
-
-        try {
-            tokenResponse = TokenResponse.parse(tokenRequest.toHTTPRequest().send());
-        } catch (ParseException parseException) {
-            throw new IllegalArgumentException("Invalid or missing response parameters from token endpoint: "
-                                               + parseException.getMessage(), parseException);
-        }
-
+        final TokenResponse tokenResponse =
+                Client.getTokenResponse(codeGrant, this.clientID, this.clientSecret, this.discoveryDocument);
         if (!tokenResponse.indicatesSuccess()) {
             // We got an error response...
             handleTokenErrorResponse(tokenResponse.toErrorResponse());
         }
 
-        final AccessTokenResponse tokenSuccessResponse = tokenResponse.toSuccessResponse();
-        return setAccessToken(new JSONObject(tokenSuccessResponse.toJSONObject().toJSONString()));
+        return setAccessToken(
+                new JSONObject(tokenResponse.toSuccessResponse().toJSONObject().toJSONString()));
     }
 
     byte[] setAccessToken(final JSONObject tokenSet) throws Exception {
@@ -336,27 +349,15 @@ public class Client {
         final RefreshTokenGrant refreshTokenGrant = new RefreshTokenGrant(refreshToken);
 
         // The credentials to authenticate the client at the token endpoint
-        final ClientID clientID = new ClientID(this.clientID);
-        final Secret clientSecret = new Secret(this.clientSecret);
-        final ClientAuthentication clientAuth = new ClientSecretBasic(clientID, clientSecret);
-        final URI tokenEndpoint = URI.create(Client.getTokenEndpoint().toExternalForm());
-        final TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, refreshTokenGrant);
-        final TokenResponse tokenResponse;
-
-        try {
-            tokenResponse = TokenResponse.parse(tokenRequest.toHTTPRequest().send());
-        } catch (ParseException parseException) {
-            throw new IllegalArgumentException("Invalid or missing response parameters from token endpoint: "
-                                               + parseException.getMessage(), parseException);
-        }
-
+        final TokenResponse tokenResponse =
+                Client.getTokenResponse(refreshTokenGrant, this.clientID, this.clientSecret, this.discoveryDocument);
         if (!tokenResponse.indicatesSuccess()) {
+            // We got an error response...
             handleTokenErrorResponse(tokenResponse.toErrorResponse());
         }
 
-        final AccessTokenResponse tokenSuccessResponse = tokenResponse.toSuccessResponse();
-
-        return new Assets(new JSONObject(tokenSuccessResponse.toJSONObject().toJSONString()));
+        return new Assets(
+                new JSONObject(tokenResponse.toSuccessResponse().toJSONObject().toJSONString()));
     }
 
     String getAssetsKey(final String encryptedCookieValue) throws Exception {
@@ -379,7 +380,7 @@ public class Client {
      * Obtain an authorization code and provide the optional state.
      *
      * @param responseURI The response URI from the authorization's login.
-     * @param state       The state value to compare against to the response.
+     * @param state The state value to compare against to the response.
      * @return AuthorizationCode instance, never null.
      */
     AuthorizationCode getAuthorizationCode(final URI responseURI, final State state) {
@@ -389,8 +390,10 @@ public class Client {
         try {
             response = AuthorizationResponse.parse(responseURI);
         } catch (ParseException parseException) {
-            throw new IllegalArgumentException("Invalid or missing response parameters from authorization endpoint: "
-                                               + parseException.getMessage(), parseException);
+            throw new IllegalArgumentException(
+                    "Invalid or missing response parameters from authorization endpoint: "
+                            + parseException.getMessage(),
+                    parseException);
         }
 
         // Check the returned state parameter, must match the original.
@@ -419,8 +422,8 @@ public class Client {
         if (tokenErrorObject.getHTTPStatusCode() == 401) {
             throw new NotAuthenticatedException("Refresh token expired.  Please re-authenticate.");
         } else {
-            throw new IllegalArgumentException("Invalid response from token server: "
-                                               + tokenErrorResponse.toJSONObject());
+            throw new IllegalArgumentException(
+                    "Invalid response from token server: " + tokenErrorResponse.toJSONObject());
         }
     }
 
@@ -433,8 +436,10 @@ public class Client {
             return false;
         }
         Client that = (Client) o;
-        return Objects.equals(clientID, that.clientID) && Objects.equals(callbackURL, that.callbackURL)
-               && Objects.equals(redirectURL, that.redirectURL) && Arrays.equals(scope, that.scope);
+        return Objects.equals(clientID, that.clientID)
+                && Objects.equals(callbackURL, that.callbackURL)
+                && Objects.equals(redirectURL, that.redirectURL)
+                && Arrays.equals(scope, that.scope);
     }
 
     @Override
@@ -445,20 +450,10 @@ public class Client {
     }
 
     /**
-     * Generate a new 16-character state value for the caller.  The caller will need to store this and retrieve it
-     * later to compare.
-     *
-     * @return String random state value.
-     */
-    public static String generateState() {
-        return RandomStringUtils.randomAlphanumeric(16);
-    }
-
-    /**
      * Obtain whether the given Assets is expired, or about to expire.
      *
      * @param assets The Assets to check.
-     * @return  True if about to expire or is expired.  False otherwise.
+     * @return True if about to expire or is expired. False otherwise.
      */
     public static boolean needsRefresh(final Assets assets) {
         return assets.isAccessTokenExpired();
@@ -467,67 +462,52 @@ public class Client {
     /**
      * Obtain the Issuer base URL.
      *
-     * @return URL of the Issuer.  Never null.
-     * @throws IOException                   For a poorly formed URL.
+     * @return URL of the Issuer. Never null.
      * @throws UnsupportedOperationException If the configured Issuer URL is not an HTTPS URL.
      */
-    public static URL getIssuer() throws IOException {
+    public static URL getIssuer() {
         final LocalAuthority localAuthority = new LocalAuthority();
-        final URI openIDIssuerURI = localAuthority.getServiceURI(Standards.SECURITY_METHOD_OPENID.toASCIIString());
+        final URI openIDIssuerURI = localAuthority.getResourceID(Standards.SECURITY_METHOD_OPENID);
         if (!"https".equals(openIDIssuerURI.getScheme())) {
             throw new UnsupportedOperationException("OpenID Provider not configured.");
         } else {
-            return openIDIssuerURI.toURL();
+            try {
+                return openIDIssuerURI.toURL();
+            } catch (IOException e) {
+                throw new IllegalStateException("Malformed Issuer URL from Registry: " + openIDIssuerURI, e);
+            }
         }
     }
 
     /**
-     * Pull the Authorization Endpoint URL from the Well Known JSON document.
+     * Obtain a TokenResponse from the token endpoint using the given AuthorizationGrant.
      *
-     * @return URL of the Authorization Endpoint for authentication.  Never null.
-     * @throws IOException For a poorly formed URL.
+     * @param authorizationGrant The grant request
+     * @param clientIDValue The Client ID
+     * @param clientSecretValue The Client Secret
+     * @return TokenResponse instance. Never null. Callers will need to check for success.
+     * @throws IOException If the request couldn't be sent, or the Token Endpoint couldn't be retrieved.
+     * @throws IllegalArgumentException If the token response could not be parsed.
      */
-    public static URL getAuthorizationEndpoint() throws IOException {
-        final JSONObject jsonObject = Client.getWellKnownJSON();
-        final String authEndpointString = jsonObject.getString(Client.AUTH_ENDPOINT_KEY);
-        return new URL(authEndpointString);
-    }
+    private static TokenResponse getTokenResponse(
+            final AuthorizationGrant authorizationGrant,
+            final String clientIDValue,
+            final String clientSecretValue,
+            final DiscoveryDocument discoveryDocument)
+            throws IOException {
+        final ClientID clientID = new ClientID(clientIDValue);
+        final Secret clientSecret = new Secret(clientSecretValue);
+        final ClientAuthentication clientAuth = new ClientSecretBasic(clientID, clientSecret);
+        final URI tokenEndpoint =
+                URI.create(discoveryDocument.getTokenEndpoint().toExternalForm());
+        final TokenRequest tokenRequest = new TokenRequest(tokenEndpoint, clientAuth, authorizationGrant, null);
 
-    /**
-     * Pull the Token Endpoint URL from the Well Known JSON document.
-     *
-     * @return URL of the Token Endpoint for access and refresh tokens.  Never null.
-     * @throws IOException For a poorly formed URL.
-     */
-    public static URL getTokenEndpoint() throws IOException {
-        final JSONObject jsonObject = Client.getWellKnownJSON();
-        final String tokenEndpointString = jsonObject.getString(Client.TOKEN_ENDPOINT_KEY);
-        return new URL(tokenEndpointString);
-    }
-
-    /**
-     * Obtain the .well-known endpoint JSON document.
-     * TODO: Cache this?
-     *
-     * @return The JSON Object of the response data.
-     * @throws MalformedURLException If URLs cannot be created as expected.
-     */
-    private static JSONObject getWellKnownJSON() throws IOException {
-        final URL oidcIssuer = Client.getIssuer();
-        final URL configurationURL = new URL(oidcIssuer.toExternalForm() + Client.WELL_KNOWN_ENDPOINT);
-        final Writer writer = new StringWriter();
-        final HttpGet httpGet = new HttpGet(configurationURL, inputStream -> {
-            final Reader inputReader = new BufferedReader(new InputStreamReader(inputStream));
-            final char[] buffer = new char[8192];
-            int charsRead;
-            while ((charsRead = inputReader.read(buffer)) >= 0) {
-                writer.write(buffer, 0, charsRead);
-            }
-            writer.flush();
-        });
-
-        httpGet.run();
-
-        return new JSONObject(writer.toString());
+        try {
+            return TokenResponse.parse(tokenRequest.toHTTPRequest().send());
+        } catch (ParseException parseException) {
+            throw new IllegalArgumentException(
+                    "Invalid or missing response parameters from token endpoint: " + parseException.getMessage(),
+                    parseException);
+        }
     }
 }
