@@ -60,6 +60,9 @@ dependencies {
 }
 
 spotless {
+    // Only format files changed since the specified git tag/commit
+    ratchetFrom('v1.0.0') // Adjust this tag as needed
+
     java {
         // Interpret all files as utf-8
         encoding 'UTF-8'
