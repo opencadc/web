@@ -78,18 +78,18 @@ spotless {
 }
 check.dependsOn spotlessCheck
 
-// Example in a Gradle build script
-afterEvaluate {
-    def spotless = getProject().getExtensions().findByName("com.diffplug.spotless")
-    if (spotless != null) {
-        File gitFolder = file('.git') // Relative or absolute path
-        if (gitFolder.exists()) {
-            spotless.ratchetFrom('origin/main')
-        } else {
-            spotless.ratchetFrom(null) // No ratchet if .git folder does not exist
-        }
-    }
-}
+//// Example in a Gradle build script
+//afterEvaluate {
+//    def spotless = getProject().getExtensions().findByName("com.diffplug.spotless")
+//    if (spotless != null) {
+//        File gitFolder = file('.git') // Relative or absolute path
+//        if (gitFolder.exists()) {
+//            spotless.ratchetFrom('origin/main')
+//        } else {
+//            spotless.ratchetFrom(null) // No ratchet if .git folder does not exist
+//        }
+//    }
+//}
 
 // Create Java Code Coverage Reports
 jacocoTestReport {
