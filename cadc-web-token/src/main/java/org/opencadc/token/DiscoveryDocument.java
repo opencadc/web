@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Objects;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 
@@ -30,10 +29,14 @@ public class DiscoveryDocument {
      * @throws IOException If there is an error determining the domain name of the URL.
      */
     DiscoveryDocument(final URL discoveryDocumentURL) throws IOException {
-        Objects.requireNonNull(discoveryDocumentURL, "discoveryDocumentURL from issuer cannot be null");
-        final String domainName = NetUtil.getDomainName(discoveryDocumentURL);
-        this.cachingFile = new CachingFile(
-                DiscoveryDocument.getBaseCacheDirectory(domainName).toFile(), discoveryDocumentURL);
+        this(new CachingFile(
+                DiscoveryDocument.getBaseCacheDirectory(NetUtil.getDomainName(discoveryDocumentURL))
+                        .toFile(),
+                discoveryDocumentURL));
+    }
+
+    DiscoveryDocument(final CachingFile cachingFile) {
+        this.cachingFile = cachingFile;
     }
 
     private JSONObject getDiscoveryDocumentFileContent() throws IOException {
