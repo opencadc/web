@@ -68,6 +68,7 @@
 
 package org.opencadc.token;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -83,10 +84,10 @@ class RedisTokenStore implements TokenStore {
     private static final String REFRESH_TOKEN_FIELD = "refreshToken";
     private static final String EXPIRES_AT_MS_TOKEN_FIELD = "expiresAtMS";
 
-    private final RedisClient redisClient;
+    private final URI redisURI;
 
     RedisTokenStore(final String url) {
-        this.redisClient = RedisClient.builder().fromURI(url).build();
+        this.redisURI = URI.create(url);
     }
 
     private static Map<String, String> getPayload(final Assets assets) {
@@ -118,7 +119,9 @@ class RedisTokenStore implements TokenStore {
      */
     @Override
     public void put(final String assetsKey, final Assets assets) {
-        this.redisClient.hset(assetsKey, RedisTokenStore.getPayload(assets));
+        try (final RedisClient redisClient = RedisClient.create(this.redisURI)) {
+            redisClient.hset(assetsKey, RedisTokenStore.getPayload(assets));
+        }
     }
 
     /**
@@ -130,14 +133,16 @@ class RedisTokenStore implements TokenStore {
      */
     @Override
     public Assets get(final String assetsKey) {
-        if (redisClient.exists(assetsKey)) {
-            final Map<String, String> assetsHash = redisClient.hgetAll(assetsKey);
-            return new Assets(
-                    assetsHash.get(RedisTokenStore.ACCESS_TOKEN_FIELD),
-                    assetsHash.get(RedisTokenStore.REFRESH_TOKEN_FIELD),
-                    Long.parseLong(assetsHash.get(RedisTokenStore.EXPIRES_AT_MS_TOKEN_FIELD)));
-        } else {
-            throw new NoSuchElementException("No asset with key " + assetsKey);
+        try (final RedisClient redisClient = RedisClient.create(this.redisURI)) {
+            if (redisClient.exists(assetsKey)) {
+                final Map<String, String> assetsHash = redisClient.hgetAll(assetsKey);
+                return new Assets(
+                        assetsHash.get(RedisTokenStore.ACCESS_TOKEN_FIELD),
+                        assetsHash.get(RedisTokenStore.REFRESH_TOKEN_FIELD),
+                        Long.parseLong(assetsHash.get(RedisTokenStore.EXPIRES_AT_MS_TOKEN_FIELD)));
+            } else {
+                throw new NoSuchElementException("No asset with key " + assetsKey);
+            }
         }
     }
 }
