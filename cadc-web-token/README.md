@@ -1,4 +1,4 @@
-# OpenCADC Web Token library (1.1.1)
+# OpenCADC Web Token library (1.2.0)
 
 - [Usage](#usage)
 - [OpenID Connect](#openid-connect)
@@ -115,7 +115,9 @@ public class ApplicationProtectedResourceServlet extends HttpServlet {
             subject.getPublicCredentials().add(AuthMethod.TOKEN);
             
             // Create the Subject, then use it to make authenticated calls.
-            Subject.doAs(subject, ...);
+            Subject.doAs(subject, () -> { 
+                // authenticated logic 
+            });
         }
     }
 }
@@ -181,9 +183,11 @@ Document returned from the `TokenRequest`:
   "expires_in": 3600,
   "refresh_token": "IwOGYzYTlmM2YxOTQ5MGE3YmNmMDFkNTVk",
 
-  "id_token": "asklIILLdnsf9sdjsdfhkjhjh" // Not actually used, but there if needed.
+  "id_token": "asklIILLdnsf9sdjsdfhkjhjh" 
 }
 ```
+!!! note
+    The `id_token` is not used by the application, but may be useful for debugging or other purposes.
 
 The application now has what it needs to make authenticated calls to the API(s).  Let's look at how they're stored and used with the [BFF Pattern](#bff-pattern).
 
