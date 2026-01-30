@@ -186,8 +186,8 @@ Document returned from the `TokenRequest`:
   "id_token": "asklIILLdnsf9sdjsdfhkjhjh" 
 }
 ```
-!!! note
-    The `id_token` is not used by the application, but may be useful for debugging or other purposes.
+**Note**
+The `id_token` is not used by the application, but may be useful for debugging or other purposes.
 
 The application now has what it needs to make authenticated calls to the API(s).  Let's look at how they're stored and used with the [BFF Pattern](#bff-pattern).
 
