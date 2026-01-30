@@ -68,80 +68,81 @@
 
 package org.opencadc.token;
 
-
-import redis.clients.jedis.JedisPooled;
-
+import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
-
+import java.util.UUID;
+import redis.clients.jedis.RedisClient;
 
 /**
- * Default TokenStore implementation access to a cache.  By default, this relies on a Redis instance and the Jedis
- * Java library.
+ * Default TokenStore implementation access to a cache. By default, this relies on a Redis instance and the Jedis Java
+ * library.
  */
 class RedisTokenStore implements TokenStore {
     private static final String ACCESS_TOKEN_FIELD = "accessToken";
     private static final String REFRESH_TOKEN_FIELD = "refreshToken";
     private static final String EXPIRES_AT_MS_TOKEN_FIELD = "expiresAtMS";
 
-    private static final String KEY_FIELD = "asset_key_index";
-    private final JedisPooled jedisPool;
-
-    RedisTokenStore() {
-        this.jedisPool = new JedisPooled();
-    }
+    private final URI redisURI;
 
     RedisTokenStore(final String url) {
-        this.jedisPool = new JedisPooled(url);
+        this.redisURI = URI.create(url);
     }
 
+    private static Map<String, String> getPayload(final Assets assets) {
+        final Map<String, String> payload = new HashMap<>();
+        payload.put(RedisTokenStore.ACCESS_TOKEN_FIELD, assets.getAccessToken());
+        payload.put(RedisTokenStore.REFRESH_TOKEN_FIELD, assets.getRefreshToken());
+        payload.put(RedisTokenStore.EXPIRES_AT_MS_TOKEN_FIELD, Long.toString(assets.getExpiryTimeMilliseconds()));
+        return payload;
+    }
 
     /**
-     * Insert a new Asset, then return the generated key.
+     * Insert a new Asset, then return the generated key. Use UUIDs to ensure uniqueness.
      *
      * @param assets The Assets to store.
      * @return String key, never null.
      */
     @Override
     public String put(final Assets assets) {
-        final String assetsKey = Long.toString(this.jedisPool.incrBy(RedisTokenStore.KEY_FIELD, 1L));
-        put(assetsKey, assets);
-
-        return assetsKey;
+        final String assetKey = UUID.randomUUID().toString();
+        this.put(assetKey, assets);
+        return assetKey;
     }
 
     /**
      * Insert or update an Asset at the given key.
      *
      * @param assetsKey The key to store the Assets at.
-     * @param assets    The Assets to store.
+     * @param assets The Assets to store.
      */
     @Override
     public void put(final String assetsKey, final Assets assets) {
-        final Map<String, String> assetsHash = new HashMap<>();
-        assetsHash.put(RedisTokenStore.ACCESS_TOKEN_FIELD, assets.getAccessToken());
-        assetsHash.put(RedisTokenStore.REFRESH_TOKEN_FIELD, assets.getRefreshToken());
-        assetsHash.put(RedisTokenStore.EXPIRES_AT_MS_TOKEN_FIELD, Long.toString(assets.getExpiryTimeMilliseconds()));
-        this.jedisPool.hset(assetsKey, assetsHash);
+        try (final RedisClient redisClient = RedisClient.create(this.redisURI)) {
+            redisClient.hset(assetsKey, RedisTokenStore.getPayload(assets));
+        }
     }
 
     /**
      * Obtain the Assets from the cache at the given key, or throw an Exception.
      *
      * @param assetsKey The key to look up.
-     * @return  The Assets document.  Never null.
-     * @throws NoSuchElementException   If the given key returns nothing.
+     * @return The Assets document. Never null.
+     * @throws NoSuchElementException If the given key returns nothing.
      */
     @Override
     public Assets get(final String assetsKey) {
-        if (jedisPool.exists(assetsKey)) {
-            final Map<String, String> assetsHash = jedisPool.hgetAll(assetsKey);
-            return new Assets(assetsHash.get(RedisTokenStore.ACCESS_TOKEN_FIELD),
-                              assetsHash.get(RedisTokenStore.REFRESH_TOKEN_FIELD),
-                              Long.parseLong(assetsHash.get(RedisTokenStore.EXPIRES_AT_MS_TOKEN_FIELD)));
-        } else {
-            throw new NoSuchElementException("No asset with key " + assetsKey);
+        try (final RedisClient redisClient = RedisClient.create(this.redisURI)) {
+            if (redisClient.exists(assetsKey)) {
+                final Map<String, String> assetsHash = redisClient.hgetAll(assetsKey);
+                return new Assets(
+                        assetsHash.get(RedisTokenStore.ACCESS_TOKEN_FIELD),
+                        assetsHash.get(RedisTokenStore.REFRESH_TOKEN_FIELD),
+                        Long.parseLong(assetsHash.get(RedisTokenStore.EXPIRES_AT_MS_TOKEN_FIELD)));
+            } else {
+                throw new NoSuchElementException("No asset with key " + assetsKey);
+            }
         }
     }
 }

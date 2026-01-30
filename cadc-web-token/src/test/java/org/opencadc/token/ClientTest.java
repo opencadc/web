@@ -73,14 +73,19 @@ import static org.junit.Assert.*;
 import ca.nrc.cadc.auth.NotAuthenticatedException;
 import com.nimbusds.oauth2.sdk.AuthorizationCode;
 import com.nimbusds.oauth2.sdk.id.State;
-import org.json.JSONObject;
-import org.junit.Test;
-
+import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
+import org.junit.Test;
 
 public class ClientTest {
+    static DiscoveryDocument getDiscoveryDocument() throws IOException {
+        final URL issuerURL = new URL("https://example.org/issuer");
+        return DiscoveryDocument.fromIssuer(issuerURL);
+    }
+
     @Test
     public void needsRefresh() {
         final long goodExpiryTime = System.currentTimeMillis() - 50000L;
@@ -96,12 +101,14 @@ public class ClientTest {
 
     @Test
     public void setAndGet() throws Exception {
-        final Client testSubject = new Client("clientID", "clientSecret",
-                                              new URL("https://example.org/myapp/redirect"),
-                                              new URL("https://example.org/myapp/callback"),
-                                              new String[] {
-                                                      "openid"
-                                              }, new TestTokenStore());
+        final Client testSubject = new Client(
+                ClientTest.getDiscoveryDocument(),
+                "clientID",
+                "clientSecret",
+                new URL("https://example.org/myapp/redirect"),
+                new URL("https://example.org/myapp/callback"),
+                new String[] {"openid"},
+                new TestTokenStore());
 
         // Emulate the JSON coming from the OpenID Connect Provider.
         final JSONObject testTokenSet = new JSONObject();
@@ -118,12 +125,14 @@ public class ClientTest {
 
     @Test
     public void getAuthorizationCode() throws Exception {
-        final Client testSubject = new Client("clientID", "clientSecret",
-                                              new URL("https://example.org/myapp/redirect"),
-                                              new URL("https://example.org/myapp/callback"),
-                                              new String[] {
-                                                      "openid"
-                                              }, new TestTokenStore());
+        final Client testSubject = new Client(
+                ClientTest.getDiscoveryDocument(),
+                "clientID",
+                "clientSecret",
+                new URL("https://example.org/myapp/redirect"),
+                new URL("https://example.org/myapp/callback"),
+                new String[] {"openid"},
+                new TestTokenStore());
 
         final URI testURI = URI.create("https://example.com/myapp/redirect?code=mycode");
         final AuthorizationCode authorizationCode = testSubject.getAuthorizationCode(testURI);
@@ -132,21 +141,24 @@ public class ClientTest {
 
     @Test
     public void getAuthorizationCodeErrors() throws Exception {
-        final Client testSubject = new Client("clientID", "clientSecret",
-                                              new URL("https://example.org/myapp/redirect"),
-                                              new URL("https://example.org/myapp/callback"),
-                                              new String[] {
-                                                      "openid"
-                                              }, new TestTokenStore());
+        final Client testSubject = new Client(
+                ClientTest.getDiscoveryDocument(),
+                "clientID",
+                "clientSecret",
+                new URL("https://example.org/myapp/redirect"),
+                new URL("https://example.org/myapp/callback"),
+                new String[] {"openid"},
+                new TestTokenStore());
 
         try {
             final URI testURI = URI.create("https://example.com/myapp/redirect?code=mycode&state=mystate");
             testSubject.getAuthorizationCode(testURI);
             fail("Should throw IllegalStateException");
         } catch (IllegalStateException illegalStateException) {
-            assertEquals("Wrong message.",
-                         "Response state expected, but none provided to compare to by caller.",
-                         illegalStateException.getMessage());
+            assertEquals(
+                    "Wrong message.",
+                    "Response state expected, but none provided to compare to by caller.",
+                    illegalStateException.getMessage());
         }
 
         try {
@@ -154,9 +166,10 @@ public class ClientTest {
             testSubject.getAuthorizationCode(testURI, new State("mystate"));
             fail("Should throw IllegalStateException");
         } catch (IllegalStateException illegalStateException) {
-            assertEquals("Wrong message",
-                         "Caller state expected, but none provided to compare to by response.",
-                         illegalStateException.getMessage());
+            assertEquals(
+                    "Wrong message",
+                    "Caller state expected, but none provided to compare to by response.",
+                    illegalStateException.getMessage());
         }
 
         try {
@@ -164,9 +177,10 @@ public class ClientTest {
             testSubject.getAuthorizationCode(testURI, new State("mystatetwo"));
             fail("Should throw NotAuthenticatedException");
         } catch (NotAuthenticatedException notAuthenticatedException) {
-            assertEquals("Wrong message",
-                         "Caller state does not match request state!  Possible tampering.",
-                         notAuthenticatedException.getMessage());
+            assertEquals(
+                    "Wrong message",
+                    "Caller state does not match request state!  Possible tampering.",
+                    notAuthenticatedException.getMessage());
         }
     }
 }

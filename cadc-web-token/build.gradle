@@ -11,8 +11,11 @@ plugins {
     id 'java-library'
     id 'maven-publish'
 
-    // Needed to support the old install command.  Remove with Gradle version >= 7
-    id 'maven'
+    // Automated code checking and documentation generation.
+    id 'jacoco'
+    id 'com.diffplug.spotless' version '6.25.0'
+    id 'checkstyle'
+    id 'org.jetbrains.dokka' version '1.6.0'
 }
 
 repositories {
@@ -22,8 +25,11 @@ repositories {
 }
 
 group = 'org.opencadc'
-version = '1.1.1'
-sourceCompatibility = '1.8'
+version = '1.2.0'
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
 
 description = 'OpenCADC Cookie and OIDC Access Token manager'
 def git_url = 'https://github.com/opencadc/web.git'
@@ -42,14 +48,71 @@ publishing {
 }
 
 dependencies {
-    api 'com.nimbusds:oauth2-oidc-sdk:11.12'
+    api 'com.nimbusds:oauth2-oidc-sdk:11.31.1'
 
     implementation 'org.opencadc:cadc-registry:[1.7.4,2.0.0)'
-    implementation 'org.opencadc:cadc-util:[1.10.0,2.0.0)'
-    implementation 'org.apache.commons:commons-jcs3:[3.2,3.3)'
+    implementation 'org.opencadc:cadc-util:[1.12.14,2.0.0)'
     implementation 'org.apache.commons:commons-lang3:[3.11,4.0)'
-    implementation 'redis.clients:jedis:[5.0.2,6.0.0)'
+    implementation 'redis.clients:jedis:[7.2.1,8.0.0)'
 
     // Use JUnit test framework.
     testImplementation 'junit:junit:[4.13.2, 5.0)'
+}
+
+spotless {
+    // Only format files changed since the specified git tag/commit
+    ratchetFrom('v1.0.0') // Adjust this tag as needed
+
+    java {
+        // Interpret all files as utf-8
+        encoding 'UTF-8'
+        // Use the default importOrder configuration
+        importOrder()
+        // Remove unused imports
+        removeUnusedImports()
+        // Google Java Format, Android Open Source Project style which uses 4 spaces for indentation
+        palantirJavaFormat('2.50.0').formatJavadoc(true)
+        // Format annotations on a single line
+        formatAnnotations()
+    }
+}
+check.dependsOn spotlessCheck
+
+// Create Java Code Coverage Reports
+jacocoTestReport {
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+check.dependsOn jacocoTestReport
+
+// Create JavaDoc
+javadoc {
+    destinationDir = file("${layout.buildDirectory}/docs/javadoc")
+}
+
+// Create Java Documentation using Dokka for Github Markdown and HTML
+tasks.dokkaGfm.configure {
+    outputDirectory.set(file("${layout.buildDirectory}/docs/dokka/gfm"))
+    dokkaSourceSets {
+        register("main") {
+            sourceRoots.from(file("src/main/java"))
+        }
+    }
+}
+tasks.dokkaHtml.configure {
+    outputDirectory.set(file("${layout.buildDirectory}/docs/dokka/html"))
+    dokkaSourceSets {
+        register("main") {
+            sourceRoots.from(file("src/main/java"))
+        }
+        configureEach {
+            jdkVersion.set(11)
+            sourceLink {
+                localDirectory.set(file("src/main/java"))
+                remoteUrl.set("https://github.com/opencadc/web/tree/main/cadc-web-token/src/main/java")
+            }
+        }
+    }
 }
