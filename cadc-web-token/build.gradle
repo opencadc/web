@@ -116,3 +116,5 @@ tasks.dokkaHtml.configure {
         }
     }
 }
+
+apply from: '../opencadc.gradle'
